@@ -1,0 +1,140 @@
+<view class="page">
+  <!-- 统计概览 -->
+  <view class="glass-card stats-row">
+    <view class="stat-cell">
+      <text class="stat-label">支出</text>
+      <text class="stat-val expense">¥{{totalExpense}}</text>
+    </view>
+    <view class="stat-cell">
+      <text class="stat-label">收入</text>
+      <text class="stat-val income">¥{{totalIncome}}</text>
+    </view>
+    <view class="stat-cell">
+      <text class="stat-label">结余</text>
+      <text class="stat-val" style="color:{{balanceColor}}">¥{{balance}}</text>
+    </view>
+  </view>
+
+  <!-- 筛选栏 -->
+  <view class="glass-card filter-bar">
+    <view class="filter-trigger" bindtap="onShowFilter">
+      <text>🔍</text>
+      <text>筛选</text>
+    </view>
+    <view class="filter-tags" wx:if="{{hasFilter}}">
+      <view class="filter-tag" wx:if="{{filterTypeText}}">
+        {{filterTypeText}}
+        <text class="filter-remove" bindtap="clearFilterType">✕</text>
+      </view>
+      <view class="filter-tag" wx:if="{{filterPaymentName}}">
+        {{filterPaymentName}}
+        <text class="filter-remove" bindtap="clearFilterPayment">✕</text>
+      </view>
+      <view class="filter-tag" wx:if="{{filterDateRange !== 'all'}}">
+        {{dateRangeText}}
+        <text class="filter-remove" bindtap="clearDateRange">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 账单列表（按日期分组） -->
+  <scroll-view class="bill-scroll" scroll-y enable-back-to-top refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <view class="bill-group" wx:for="{{billGroups}}" wx:key="date">
+      <view class="group-header">
+        <text class="group-date">{{formatDateDisplay(item.date)}}</text>
+        <view class="group-summary">
+          <text wx:if="{{item.income > 0}}" class="income">+¥{{item.incomeText || item.income}}</text>
+          <text wx:if="{{item.expense > 0}}" class="expense">-¥{{item.expenseText || item.expense}}</text>
+        </view>
+      </view>
+      <view class="group-bills">
+        <view class="bill-row" wx:for="{{item.bills}}" wx:for-item="bill" wx:key="id">
+          <view class="bill-left" bindtap="onEditBill" data-id="{{bill.id}}">
+            <view class="bill-avatar" style="background:{{bill.category_color || '#5cb8a0'}}">
+              <text class="avatar-text">{{(bill.category_name || '?')[0]}}</text>
+            </view>
+            <view class="bill-mid">
+              <view class="bill-top">
+                <text class="bill-cat">{{bill.category_name}}</text>
+                <text class="bill-pay pay-{{bill.payment_method}}">{{getPaymentMethodName(bill.payment_method)}}</text>
+              </view>
+              <text class="bill-remark" wx:if="{{bill.remark}}">{{bill.remark}}</text>
+              <text class="bill-time">{{bill.time}}</text>
+            </view>
+          </view>
+          <view class="bill-right">
+            <text class="bill-amount {{bill.type}}">
+              {{bill.type === 'expense' ? '-' : '+'}}¥{{parseFloat(bill.amount).toFixed(2)}}
+            </text>
+            <view class="delete-btn" bindtap="onDeleteBill" data-id="{{bill.id}}">删除</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{billGroups.length === 0 && !loading}}">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">暂无账单记录</text>
+    </view>
+
+    <view class="list-footer" wx:if="{{billGroups.length > 0}}">—— 没有更多了 ——</view>
+  </scroll-view>
+
+  <!-- 筛选弹窗 -->
+  <view class="popup-mask" wx:if="{{showFilter}}" bindtap="onHideFilter">
+    <view class="popup-content" catchtap="stopPropagation">
+      <view class="popup-header">
+        <text>筛选</text>
+        <text class="popup-close" bindtap="onHideFilter">✕</text>
+      </view>
+
+      <view class="filter-section">
+        <view class="filter-title">类型</view>
+        <view class="filter-opts">
+          <view class="filter-opt {{filterType === '' ? 'active' : ''}}" data-type="" bindtap="onFilterTypeChange">全部</view>
+          <view class="filter-opt {{filterType === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="onFilterTypeChange">支出</view>
+          <view class="filter-opt {{filterType === 'income' ? 'active' : ''}}" data-type="income" bindtap="onFilterTypeChange">收入</view>
+        </view>
+      </view>
+
+      <view class="filter-section">
+        <view class="filter-title">支付方式</view>
+        <view class="filter-opts">
+          <view class="filter-opt {{filterPayment === '' ? 'active' : ''}}" data-payment="" bindtap="onFilterPaymentChange">全部</view>
+          <view class="filter-opt {{filterPayment === 'wechat' ? 'active' : ''}}" data-payment="wechat" bindtap="onFilterPaymentChange">微信</view>
+          <view class="filter-opt {{filterPayment === 'alipay' ? 'active' : ''}}" data-payment="alipay" bindtap="onFilterPaymentChange">支付宝</view>
+          <view class="filter-opt {{filterPayment === 'cash' ? 'active' : ''}}" data-payment="cash" bindtap="onFilterPaymentChange">现金</view>
+          <view class="filter-opt {{filterPayment === 'bankcard' ? 'active' : ''}}" data-payment="bankcard" bindtap="onFilterPaymentChange">银行卡</view>
+          <view class="filter-opt {{filterPayment === 'credit' ? 'active' : ''}}" data-payment="credit" bindtap="onFilterPaymentChange">信用卡</view>
+        </view>
+      </view>
+
+      <view class="filter-section">
+        <view class="filter-title">时间范围</view>
+        <view class="filter-opts">
+          <view class="filter-opt {{filterDateRange === 'all' ? 'active' : ''}}" data-range="all" bindtap="onDateRangeChange">全部</view>
+          <view class="filter-opt {{filterDateRange === 'week' ? 'active' : ''}}" data-range="week" bindtap="onDateRangeChange">近7天</view>
+          <view class="filter-opt {{filterDateRange === 'month' ? 'active' : ''}}" data-range="month" bindtap="onDateRangeChange">近30天</view>
+          <view class="filter-opt {{filterDateRange === 'custom' ? 'active' : ''}}" data-range="custom" bindtap="onDateRangeChange">自定义</view>
+        </view>
+        <view class="date-range-row" wx:if="{{filterDateRange === 'custom'}}">
+          <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+            <view class="date-picker-box">{{startDate}}</view>
+          </picker>
+          <text>至</text>
+          <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+            <view class="date-picker-box">{{endDate}}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="filter-actions">
+        <button class="btn-outline" bindtap="onResetFilter">重置</button>
+        <button class="btn-primary" bindtap="onHideFilter">确定</button>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 浮动记账按钮 -->
+<view class="fab" bindtap="goToRecord">+</view>

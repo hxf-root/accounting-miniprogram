@@ -1,0 +1,285 @@
+/* 健身记录页面样式 */
+
+.record-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: 40rpx;
+}
+
+/* 头部 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  background: #4ECDC4;
+  color: #fff;
+}
+
+.back-btn {
+  font-size: 30rpx;
+  padding: 10rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.placeholder {
+  width: 80rpx;
+}
+
+.weight-btn {
+  font-size: 24rpx;
+  padding: 10rpx 15rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+}
+
+/* 分区 */
+.section {
+  background: #fff;
+  margin: 20rpx 30rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+/* 活动类型选择 */
+.type-scroll {
+  white-space: nowrap;
+}
+
+.type-list {
+  display: flex;
+  padding: 10rpx 0;
+}
+
+.type-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 40rpx;
+  min-width: 100rpx;
+}
+
+.type-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+  transition: all 0.3s;
+}
+
+.icon-text {
+  font-size: 40rpx;
+}
+
+.type-name {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.type-item.active .type-name {
+  color: #4ECDC4;
+  font-weight: 500;
+}
+
+/* 表单行 */
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  width: 120rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.form-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  padding: 20rpx 0;
+  text-align: right;
+}
+
+.form-input.full {
+  text-align: left;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  flex: 1;
+}
+
+.form-unit {
+  font-size: 28rpx;
+  color: #999;
+  margin-left: 10rpx;
+}
+
+/* 强度选择 */
+.intensity-list {
+  display: flex;
+  gap: 20rpx;
+}
+
+.intensity-item {
+  flex: 1;
+  padding: 20rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  text-align: center;
+  border: 2rpx solid transparent;
+}
+
+.intensity-item.active {
+  background: #E8F8F5;
+  border-color: #4ECDC4;
+}
+
+.intensity-name {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.intensity-item.active .intensity-name {
+  color: #4ECDC4;
+  font-weight: 600;
+}
+
+/* 日期时间 */
+.date-time-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 30rpx;
+}
+
+.date-time-item {
+  flex: 1;
+}
+
+.date-time-item .form-label {
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.picker-value {
+  padding: 20rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 按钮 */
+.btn-primary {
+  background: #4ECDC4;
+  color: #fff;
+  border: none;
+  border-radius: 40rpx;
+  padding: 30rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary:active {
+  background: #3DBDB4;
+}
+
+/* 弹窗样式 */
+.popup-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  background: #fff;
+  border-radius: 20rpx;
+  width: 80%;
+  max-width: 500rpx;
+  overflow: hidden;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  padding: 30rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+  text-align: center;
+}
+
+.popup-body {
+  padding: 30rpx;
+}
+
+.popup-tip {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 20rpx;
+  text-align: center;
+}
+
+.popup-buttons {
+  display: flex;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 0;
+  padding: 30rpx;
+  font-size: 28rpx;
+}
+
+.btn-secondary::after {
+  border: none;
+}
+
+.popup-buttons .btn-primary {
+  flex: 1;
+  border-radius: 0;
+  margin: 0;
+}
+

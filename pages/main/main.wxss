@@ -1,0 +1,239 @@
+/* 模块首页 */
+.main-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+/* 顶栏 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 16px 20px 12px;
+  position: relative;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.greeting {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* 内容区滚动 */
+.content-scroll {
+  flex: 1;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 加载 */
+.loading {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* 模块卡片 */
+.module-card {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.module-card:active {
+  transform: scale(0.98);
+}
+
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.module-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.module-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.module-arrow {
+  font-size: 22px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+/* 统计行 */
+.stat-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  flex: 1;
+  background: rgba(255,255,255,0.5);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.stat-expense {
+  color: var(--expense);
+}
+
+.stat-income {
+  color: var(--income);
+}
+
+/* 分类标签条 */
+.category-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.category-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.cat-emoji {
+  line-height: 1;
+}
+
+.cat-name {
+  color: var(--text-secondary);
+}
+
+.cat-amount {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* 空提示 */
+.empty-hint {
+  text-align: center;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* 今日快照行 */
+.snapshot-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.snapshot-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.snapshot-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.snapshot-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.snapshot-expense {
+  color: var(--expense);
+}
+
+.snapshot-income {
+  color: var(--income);
+}
+
+/* 模块卡片底部 */
+.module-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  text-align: center;
+}
+
+.footer-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 底部安全区 */
+.bottom-safe {
+  height: 40px;
+}

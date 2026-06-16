@@ -1,0 +1,130 @@
+<view class="page">
+  <!-- 类型切换 -->
+  <view class="type-switch" style="background:var(--bg)">
+    <view class="type-btn {{type === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="onTypeChange">
+      支出
+    </view>
+    <view class="type-btn {{type === 'income' ? 'active' : ''}}" data-type="income" bindtap="onTypeChange">
+      收入
+    </view>
+  </view>
+
+  <!-- 金额 -->
+  <view class="amount-area">
+    <text class="amount-currency">¥</text>
+    <text class="amount-value">{{amount}}</text>
+  </view>
+
+  <!-- 分类选择 (网格) -->
+  <view class="glass-card">
+    <view class="section-title">选择分类</view>
+    <view class="category-grid">
+      <view
+        class="category-cell {{selectedCategory && selectedCategory.id === item.id ? 'selected' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="id"
+        data-index="{{index}}"
+        bindtap="onCategorySelect"
+      >
+        <view
+          class="cat-icon-wrap"
+          style="background-color: {{selectedCategory && selectedCategory.id === item.id ? (item.color || '#5cb8a0') : 'rgba(0,0,0,0.04)'}}"
+        >
+          <text style="color: {{selectedCategory && selectedCategory.id === item.id ? '#fff' : 'var(--text-secondary)'}}">
+            {{(item.name || item.icon || '?')[0]}}
+          </text>
+        </view>
+        <text class="cat-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付方式 -->
+  <view class="glass-card">
+    <view class="section-title">支付方式</view>
+    <view class="payment-grid">
+      <view
+        class="payment-cell {{selectedPayment === item.id ? 'selected' : ''}}"
+        wx:for="{{paymentMethods}}"
+        wx:key="id"
+        data-method="{{item.id}}"
+        bindtap="onPaymentSelect"
+      >
+        <view class="pay-icon" style="background-color: {{item.color}}20; border-color: {{selectedPayment === item.id ? item.color : 'transparent'}}">
+          <text style="color: {{item.color}}">{{item.icon}}</text>
+        </view>
+        <text class="pay-name">{{item.name}}</text>
+        <view wx:if="{{selectedPayment === item.id}}" class="pay-check" style="background:{{item.color}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 日期+时间+备注 -->
+  <view class="glass-card">
+    <view class="meta-row">
+      <view class="meta-item" bindtap="onShowDatePicker">
+        <text>📅</text>
+        <text class="meta-text">{{date}}</text>
+      </view>
+      <view class="meta-item" bindtap="onShowTimePicker">
+        <text>🕐</text>
+        <text class="meta-text">{{time}}</text>
+      </view>
+      <view class="meta-item" bindtap="onShowRemarkInput">
+        <text>📝</text>
+        <text class="meta-text meta-placeholder" wx:if="{{!remark}}">备注</text>
+        <text class="meta-text" wx:else>{{remark}}</text>
+      </view>
+    </view>
+    <!-- 快捷备注 -->
+    <view class="remark-tags" wx:if="{{!remark}}">
+      <view class="remark-tag" wx:for="{{commonRemarks[type]}}" wx:key="*this" data-remark="{{item}}" bindtap="onSelectCommonRemark">{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 数字键盘 -->
+  <view class="numpad">
+    <view class="numpad-row">
+      <view class="numpad-key" data-num="7" bindtap="onNumberInput">7</view>
+      <view class="numpad-key" data-num="8" bindtap="onNumberInput">8</view>
+      <view class="numpad-key" data-num="9" bindtap="onNumberInput">9</view>
+      <view class="numpad-key numpad-del" data-num="backspace" bindtap="onNumberInput">⌫</view>
+    </view>
+    <view class="numpad-row">
+      <view class="numpad-key" data-num="4" bindtap="onNumberInput">4</view>
+      <view class="numpad-key" data-num="5" bindtap="onNumberInput">5</view>
+      <view class="numpad-key" data-num="6" bindtap="onNumberInput">6</view>
+      <view class="numpad-key numpad-action" bindtap="onCancel">取消</view>
+    </view>
+    <view class="numpad-row">
+      <view class="numpad-key" data-num="1" bindtap="onNumberInput">1</view>
+      <view class="numpad-key" data-num="2" bindtap="onNumberInput">2</view>
+      <view class="numpad-key" data-num="3" bindtap="onNumberInput">3</view>
+      <view class="numpad-key numpad-confirm" bindtap="onSave">确认</view>
+    </view>
+    <view class="numpad-row">
+      <view class="numpad-key numpad-zero" data-num="0" bindtap="onNumberInput">0</view>
+      <view class="numpad-key" data-num="." bindtap="onNumberInput">.</view>
+    </view>
+  </view>
+
+  <!-- 备注弹窗 -->
+  <view class="popup-mask" wx:if="{{showRemarkInput}}" bindtap="onHideRemarkInput">
+    <view class="popup-content" catchtap="stopPropagation">
+      <view class="popup-header">
+        <text>添加备注</text>
+        <text class="popup-close" bindtap="onHideRemarkInput">✕</text>
+      </view>
+      <input class="remark-input" value="{{remark}}" placeholder="输入备注…" bindinput="onRemarkInput" focus="{{showRemarkInput}}" />
+      <button class="btn-primary popup-btn" bindtap="onHideRemarkInput">确定</button>
+    </view>
+  </view>
+
+  <!-- 日期选择器 (隐藏, 用 tap 触发) -->
+  <picker mode="date" value="{{date}}" bindchange="onDateChange" hidden>
+    <view></view>
+  </picker>
+  <picker mode="time" value="{{time}}" bindchange="onTimeChange" hidden>
+    <view></view>
+  </picker>
+</view>

@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/main/main",
+    "pages/index/index",
+    "pages/record/record",
+    "pages/history/history",
+    "pages/settings/settings",
+    "pages/category/category",
+    "pages/import-bill/import-bill",
+    "pages/fitness/index",
+    "pages/fitness/record",
+    "pages/fitness/analytics",
+    "pages/fitness/history",
+    "pages/fitness/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#f0f6f3",
+    "navigationBarTitleText": "抱布记",
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom"
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "tabBar": {
+    "color": "#a0b8af",
+    "selectedColor": "#5cb8a0",
+    "backgroundColor": "#f0f6f3",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/main/main",
+        "text": "模块",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/index/index",
+        "text": "记账",
+        "iconPath": "images/list.png",
+        "selectedIconPath": "images/list-active.png"
+      },
+      {
+        "pagePath": "pages/fitness/index",
+        "text": "健身",
+        "iconPath": "images/list.png",
+        "selectedIconPath": "images/list-active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "我的",
+        "iconPath": "images/user.png",
+        "selectedIconPath": "images/user-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

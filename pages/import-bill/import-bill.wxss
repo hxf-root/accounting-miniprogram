@@ -1,0 +1,359 @@
+/* 导入页 */
+.import-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+/* 顶栏 */
+.header {
+  padding: 12px 16px 8px;
+  position: relative;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-back {
+  font-size: 28px;
+  color: var(--text);
+  font-weight: 300;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.header-back:active {
+  opacity: 0.5;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 内容区 */
+.content-scroll {
+  flex: 1;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* TAB 切换 */
+.tab-bar {
+  display: flex;
+  background: var(--glass);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--glass-border);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(92,184,160,0.25);
+}
+
+/* JSON 输入 */
+.json-input {
+  width: 100%;
+  min-height: 180px;
+  font-size: 13px;
+  font-family: 'Courier New', 'PingFang SC', monospace;
+  color: var(--text);
+  background: rgba(255,255,255,0.5);
+  border-radius: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: none;
+  line-height: 1.6;
+}
+
+/* 格式说明 */
+.format-card {
+  padding: 12px;
+}
+
+.format-code {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  padding: 12px 0;
+  border-radius: 999px;
+}
+
+.action-btn[disabled] {
+  opacity: 0.4;
+}
+
+/* CSV 说明区域 */
+.csv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.csv-section-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.csv-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.csv-section-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.csv-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.04);
+  margin: 12px 0;
+}
+
+.csv-headers-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.csv-header-tag {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.csv-example-wrap {
+  background: rgba(0,0,0,0.03);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+
+.csv-example {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.csv-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.csv-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* CSV 选择 */
+.csv-choose-wrap {
+  margin: 16px 0;
+}
+
+.csv-choose-btn {
+  width: 100%;
+  font-size: 15px;
+  padding: 14px 0;
+  border-radius: 999px;
+  text-align: center;
+}
+
+/* CSV 文件卡片 */
+.csv-file-card {
+  margin-bottom: 16px;
+}
+
+.csv-file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.csv-file-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.csv-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.csv-file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.csv-file-size {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.csv-file-clear {
+  font-size: 16px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* CSV 预览 */
+.csv-preview {
+  background: rgba(0,0,0,0.03);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.csv-preview-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.csv-preview-text {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 底部安全区 */
+.bottom-safe {
+  height: 40px;
+}
+
+/* 导入结果弹窗 */
+.popup-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.popup-content {
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-height: 80vh;
+  box-sizing: border-box;
+}
+
+.modal-header {
+  text-align: center;
+  padding-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 20px;
+}
+
+.result-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.result-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.result-error {
+  font-size: 12px;
+  color: var(--expense);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  padding: 14px 0;
+  border-radius: 999px;
+}

@@ -1,0 +1,204 @@
+<view class="record-page">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="back-btn" bindtap="onCancel">← 返回</text>
+    <text class="title">{{isEdit ? '编辑记录' : '记录健身'}}</text>
+    <text class="weight-btn" bindtap="onShowWeightPopup">体重: {{userSettings.weight}}kg</text>
+  </view>
+
+  <!-- 活动类型选择 -->
+  <view class="section">
+    <view class="section-title">选择活动类型</view>
+    <scroll-view class="type-scroll" scroll-x>
+      <view class="type-list">
+        <view class="type-item {{formData.type === item.id ? 'active' : ''}}" 
+              wx:for="{{activityTypes}}" 
+              wx:key="id"
+              data-type="{{item.id}}"
+              bindtap="onTypeSelect">
+          <view class="type-icon" style="background-color: {{formData.type === item.id ? item.color : '#f5f5f5'}}">
+            <text class="icon-text" style="color: {{formData.type === item.id ? '#fff' : '#999'}}">{{item.icon}}</text>
+          </view>
+          <text class="type-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 基本信息 -->
+  <view class="section">
+    <!-- 运动时长 - 所有运动都需要 -->
+    <view class="form-row">
+      <text class="form-label">运动时长</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.minutes}}" 
+               placeholder="分钟" 
+               bindinput="onMinutesInput" />
+        <text class="form-unit">分钟</text>
+      </view>
+    </view>
+    
+    <!-- 消耗热量 - 所有运动都需要 -->
+    <view class="form-row">
+      <text class="form-label">消耗热量</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.calories}}" 
+               placeholder="卡路里" 
+               bindinput="onCaloriesInput" />
+        <text class="form-unit">卡路里</text>
+      </view>
+    </view>
+    
+    <!-- 距离 - 仅跑步、游泳、骑行需要 -->
+    <view class="form-row" wx:if="{{formData.type === 'running' || formData.type === 'swimming' || formData.type === 'cycling'}}">
+      <text class="form-label">距离</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.distance}}" 
+               placeholder="公里" 
+               bindinput="onDistanceInput" />
+        <text class="form-unit">公里</text>
+      </view>
+    </view>
+    
+    <!-- 步数 - 仅跑步、骑行、篮球、足球、羽毛球、网球需要 -->
+    <view class="form-row" wx:if="{{formData.type === 'running' || formData.type === 'cycling' || formData.type === 'basketball' || formData.type === 'football' || formData.type === 'badminton' || formData.type === 'tennis'}}">
+      <text class="form-label">步数</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.steps}}" 
+               placeholder="步数" 
+               bindinput="onStepsInput" />
+        <text class="form-unit">步</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 俯卧撑特有数据 -->
+  <view class="section" wx:if="{{formData.type === 'pushup'}}">
+    <view class="section-title">俯卧撑数据</view>
+    <view class="form-row">
+      <text class="form-label">俯卧撑个数</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.pushupCount}}" 
+               placeholder="个数" 
+               bindinput="onPushupCountInput" />
+        <text class="form-unit">个</text>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">完成时间</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.pushupTime}}" 
+               placeholder="秒" 
+               bindinput="onPushupTimeInput" />
+        <text class="form-unit">秒</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 哑铃特有数据 -->
+  <view class="section" wx:if="{{formData.type === 'dumbbell'}}">
+    <view class="section-title">哑铃数据</view>
+    <view class="form-row">
+      <text class="form-label">重复个数</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               type="number" 
+               value="{{formData.dumbbellReps}}" 
+               placeholder="个数" 
+               bindinput="onDumbbellRepsInput" />
+        <text class="form-unit">个</text>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">运动方向</text>
+      <view class="form-input-wrapper">
+        <input class="form-input" 
+               value="{{formData.dumbbellDirection}}" 
+               placeholder="如：向上、向下、侧平举等" 
+               bindinput="onDumbbellDirectionInput" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 强度选择 -->
+  <view class="section">
+    <view class="section-title">运动强度</view>
+    <view class="intensity-list">
+      <view class="intensity-item {{formData.intensity === item.id ? 'active' : ''}}" 
+            wx:for="{{intensityOptions}}" 
+            wx:key="id"
+            data-intensity="{{item.id}}"
+            bindtap="onIntensitySelect">
+        <text class="intensity-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注和时间 -->
+  <view class="section">
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input full" 
+             value="{{formData.remark}}" 
+             placeholder="运动感受、地点等" 
+             bindinput="onRemarkInput" />
+    </view>
+    
+    <view class="date-time-row">
+      <view class="date-time-item">
+        <text class="form-label">日期</text>
+        <picker mode="date" value="{{formData.date}}" bindchange="onDateChange">
+          <view class="picker-value">{{formData.date}}</view>
+        </picker>
+      </view>
+      <view class="date-time-item">
+        <text class="form-label">时间</text>
+        <picker mode="time" value="{{formData.time}}" bindchange="onTimeChange">
+          <view class="picker-value">{{formData.time}}</view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="section">
+    <button class="btn-primary" bindtap="onSave">{{isEdit ? '保存修改' : '保存记录'}}</button>
+  </view>
+
+  <!-- 体重设置弹窗 -->
+  <view class="popup-mask" wx:if="{{showWeightPopup}}" bindtap="onHideWeightPopup">
+    <view class="popup-content" catchtap="stopPropagation">
+      <text class="popup-title">设置体重</text>
+      <view class="popup-body">
+        <view class="form-row">
+          <text class="form-label">体重</text>
+          <view class="form-input-wrapper">
+            <input class="form-input" 
+                   type="number" 
+                   value="{{userSettings.weight}}" 
+                   placeholder="请输入体重(kg)" 
+                   bindinput="onWeightInput" />
+            <text class="form-unit">kg</text>
+          </view>
+        </view>
+        <text class="popup-tip">体重信息将用于计算卡路里消耗</text>
+      </view>
+      <view class="popup-buttons">
+        <button class="btn-secondary" bindtap="onHideWeightPopup">取消</button>
+        <button class="btn-primary" bindtap="onSaveWeight">保存</button>
+      </view>
+    </view>
+  </view>
+</view>

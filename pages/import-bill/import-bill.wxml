@@ -1,0 +1,162 @@
+<view class="import-page">
+  <!-- 顶部状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- 顶栏 -->
+  <view class="header">
+    <view class="header-left">
+      <text class="header-back" bindtap="goBack">‹</text>
+      <text class="header-title">导入数据</text>
+    </view>
+  </view>
+
+  <scroll-view
+    class="content-scroll"
+    scroll-y
+    show-scrollbar="{{false}}"
+  >
+    <!-- ===== TAB 切换 ===== -->
+    <view class="tab-bar">
+      <view
+        class="tab-item {{activeTab === 'json' ? 'tab-active' : ''}}"
+        data-tab="json"
+        bindtap="switchTab"
+      >JSON 导入</view>
+      <view
+        class="tab-item {{activeTab === 'csv' ? 'tab-active' : ''}}"
+        data-tab="csv"
+        bindtap="switchTab"
+      >CSV 导入</view>
+    </view>
+
+    <!-- ===== JSON 导入 ===== -->
+    <view wx:if="{{activeTab === 'json'}}" class="tab-content">
+      <view class="section-title">粘贴 JSON 数据</view>
+      <view class="glass-card">
+        <textarea
+          class="json-input"
+          placeholder="粘贴导出的 JSON 数据..."
+          placeholder-style="color:var(--text-muted);font-size:13px;"
+          value="{{jsonText}}"
+          bindinput="onJsonInput"
+          auto-height
+          maxlength="50000"
+        />
+      </view>
+
+      <view class="section-title">格式说明</view>
+      <view class="glass-card format-card">
+        <text class="format-code">{{jsonTemplate}}</text>
+      </view>
+
+      <view class="action-buttons">
+        <button class="btn-outline action-btn" bindtap="clearJson">清空</button>
+        <button class="btn-primary action-btn" bindtap="importJson" disabled="{{!jsonText.trim()}}">导入数据</button>
+      </view>
+    </view>
+
+    <!-- ===== CSV 导入 ===== -->
+    <view wx:elif="{{activeTab === 'csv'}}" class="tab-content">
+      <view class="section-title">CSV 导入说明</view>
+
+      <view class="glass-card">
+        <view class="csv-section">
+          <text class="csv-section-icon">📋</text>
+          <text class="csv-section-title">支持格式</text>
+          <text class="csv-section-desc">
+            支持标准 CSV 文件，首行为表头，逗号分隔。
+            支持记事本和普通账目的 CSV 导入。
+          </text>
+        </view>
+
+        <view class="csv-divider"></view>
+
+        <view class="csv-section">
+          <text class="csv-section-icon">📐</text>
+          <text class="csv-section-title">CSV 表头格式</text>
+          <view class="csv-headers-wrap">
+            <view class="csv-header-tag">date</view>
+            <view class="csv-header-tag">type</view>
+            <view class="csv-header-tag">amount</view>
+            <view class="csv-header-tag">category</view>
+            <view class="csv-header-tag">note</view>
+          </view>
+        </view>
+
+        <view class="csv-divider"></view>
+
+        <view class="csv-section">
+          <text class="csv-section-icon">📝</text>
+          <text class="csv-section-title">示例数据</text>
+          <view class="csv-example-wrap">
+            <text class="csv-example">
+date,type,amount,category,note
+2024-01-15,expense,35.00,餐饮,午餐
+2024-01-15,income,5000.00,工资,1月工资
+2024-01-16,expense,12.50,交通,地铁
+            </text>
+          </view>
+        </view>
+
+        <view class="csv-divider"></view>
+
+        <view class="csv-section">
+          <text class="csv-section-icon">📌</text>
+          <text class="csv-section-title">注意事项</text>
+          <view class="csv-tips">
+            <text class="csv-tip">• type 列：expense（支出）或 income（收入）</text>
+            <text class="csv-tip">• date 格式：YYYY-MM-DD</text>
+            <text class="csv-tip">• amount 为数字，不支持千位分隔符</text>
+            <text class="csv-tip">• category 需与已有分类名称匹配</text>
+            <text class="csv-tip">• 覆盖 category 留空时自动归入"其他"</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="csv-choose-wrap">
+        <button class="btn-primary csv-choose-btn" bindtap="chooseCsv">
+          📂 选择 CSV 文件
+        </button>
+      </view>
+
+      <!-- 已选文件 -->
+      <view wx:if="{{csvFileName}}" class="glass-card csv-file-card">
+        <view class="csv-file-row">
+          <text class="csv-file-icon">📄</text>
+          <view class="csv-file-info">
+            <text class="csv-file-name">{{csvFileName}}</text>
+            <text class="csv-file-size">{{csvFileSize}}</text>
+          </view>
+          <text class="csv-file-clear" bindtap="clearCsv">✕</text>
+        </view>
+        <view class="csv-preview">
+          <text class="csv-preview-label">预览（前3行）：</text>
+          <text class="csv-preview-text">{{csvPreview}}</text>
+        </view>
+        <button class="btn-primary action-btn" bindtap="importCsv">导入 CSV</button>
+      </view>
+    </view>
+
+    <!-- 底部安全区 -->
+    <view class="bottom-safe"></view>
+  </scroll-view>
+
+  <!-- ===== 导入结果弹窗 ===== -->
+  <view wx:if="{{showResultModal}}" class="popup-mask" bindtap="hideResultModal">
+    <view class="popup-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">导入结果</text>
+      </view>
+      <view class="modal-body">
+        <text class="result-icon {{importSuccess ? 'result-success' : 'result-fail'}}">
+          {{importSuccess ? '✅' : '❌'}}
+        </text>
+        <text class="result-text">{{importResultText}}</text>
+        <text wx:if="{{importError}}" class="result-error">{{importError}}</text>
+      </view>
+      <view class="modal-actions">
+        <button class="btn-primary modal-btn" bindtap="hideResultModal">完成</button>
+      </view>
+    </view>
+  </view>
+</view>

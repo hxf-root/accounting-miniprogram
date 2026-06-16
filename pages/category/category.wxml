@@ -1,0 +1,93 @@
+<view class="page">
+  <!-- 类型切换 -->
+  <view class="type-switch">
+    <view class="type-tab {{currentType === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="switchType">支出分类</view>
+    <view class="type-tab {{currentType === 'income' ? 'active' : ''}}" data-type="income" bindtap="switchType">收入分类</view>
+  </view>
+
+  <!-- 分类列表 -->
+  <view class="glass-card cat-list" wx:if="{{categories.length > 0}}">
+    <view class="cat-item" wx:for="{{categories}}" wx:key="id">
+      <view class="cat-info">
+        <view class="cat-icon" style="background-color: {{item.color || '#5cb8a0'}}">
+          <text class="cat-icon-text">{{(item.name || '?')[0]}}</text>
+        </view>
+        <text class="cat-name">{{item.name}}</text>
+        <text wx:if="{{item.is_custom}}" class="cat-badge">自定义</text>
+      </view>
+      <view class="cat-actions">
+        <view wx:if="{{item.is_custom}}" class="cat-del" bindtap="onDeleteCategory" data-id="{{item.id}}">
+          <text>🗑️</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{categories.length === 0 && !loading}}">
+    <text class="empty-icon">📂</text>
+    <text class="empty-text">暂无分类</text>
+    <text class="empty-subtext">点击下方按钮添加</text>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <button class="btn-primary add-cat-btn" bindtap="onShowAddForm">+ 添加自定义分类</button>
+  </view>
+
+  <!-- 添加分类弹窗 -->
+  <view class="popup-mask" wx:if="{{showForm}}" bindtap="onHideForm">
+    <view class="popup-content form-popup" catchtap="stopPropagation">
+      <view class="popup-header">
+        <text>添加{{currentType === 'expense' ? '支出' : '收入'}}分类</text>
+        <text class="popup-close" bindtap="onHideForm">✕</text>
+      </view>
+
+      <!-- 分类名称 -->
+      <view class="form-section">
+        <view class="form-label">分类名称</view>
+        <input class="form-input" placeholder="输入分类名称" value="{{formName}}" bindinput="onFormNameInput" maxlength="8" />
+      </view>
+
+      <!-- 选择图标 -->
+      <view class="form-section">
+        <view class="form-label">选择图标</view>
+        <view class="icon-grid">
+          <view
+            class="icon-cell {{formIcon === item ? 'selected' : ''}}"
+            wx:for="{{iconOptions}}"
+            wx:key="*this"
+            data-icon="{{item}}"
+            bindtap="onIconSelect"
+          >
+            <view class="icon-wrap" style="background: {{formIcon === item ? '#5cb8a0' : 'rgba(0,0,0,0.04)'}}">
+              <text style="color: {{formIcon === item ? '#fff' : 'var(--text-secondary)'}}">{{item}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 选择颜色 -->
+      <view class="form-section">
+        <view class="form-label">选择颜色</view>
+        <view class="color-grid">
+          <view
+            class="color-cell {{formColor === item ? 'selected' : ''}}"
+            wx:for="{{colorOptions}}"
+            wx:key="*this"
+            data-color="{{item}}"
+            bindtap="onColorSelect"
+          >
+            <view class="color-swatch" style="background: {{item}}">
+              <text wx:if="{{formColor === item}}" class="color-check">✓</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="form-actions">
+        <button class="btn-primary" bindtap="onSubmitCategory" loading="{{saving}}">保存</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,62 @@
+<view class="container">
+  <view class="header">
+    <text class="title">健身历史</text>
+    <view class="header-actions">
+      <text class="add-btn" bindtap="goToRecord">+ 记录</text>
+    </view>
+  </view>
+
+  <view wx:if="{{isLoading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:else class="history-list">
+    <view wx:if="{{historyData.length === 0}}" class="empty-state">
+      <text class="empty-icon">🏃</text>
+      <text class="empty-text">暂无健身记录</text>
+      <text class="empty-subtext">点击右上角开始记录</text>
+    </view>
+
+    <view wx:else>
+      <view wx:for="{{historyData}}" wx:key="date" class="date-group">
+        <view class="date-header">
+          <text class="date">{{item.date}}</text>
+          <text class="stats">共{{item.activities.length}}项 | {{item.totalMinutes}}分钟 | {{item.totalCalories}}卡路里</text>
+        </view>
+
+        <view class="activity-list">
+          <view wx:for="{{item.activities}}" wx:for-item="act" wx:key="id" class="activity-item">
+            <view class="activity-main" bindtap="goToRecordDetail" data-activity="{{act}}">
+              <view class="activity-icon" style="background-color: {{act.color}}">
+                <text>{{act.icon}}</text>
+              </view>
+              <view class="activity-info">
+                <view class="activity-header">
+                  <text class="activity-name">{{act.name}}</text>
+                  <text class="activity-time">{{act.time}}</text>
+                </view>
+                <view class="activity-details">
+                  <text class="detail-tag">{{act.duration}}分钟</text>
+                  <text class="detail-tag">{{act.calories}}卡路里</text>
+                  <text wx:if="{{act.distance}}" class="detail-tag">{{act.distance}}公里</text>
+                </view>
+                <text wx:if="{{act.remark}}" class="remark">{{act.remark}}</text>
+              </view>
+            </view>
+            <view class="delete-btn" data-id="{{act.id}}" bindtap="deleteRecord">
+              <text>删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{loadingMore}}" class="loading-more">
+        <text>加载更多...</text>
+      </view>
+
+      <view wx:elif="{{!hasMore && historyData.length > 0}}" class="no-more">
+        <text>— 已加载全部记录 —</text>
+      </view>
+    </view>
+  </view>
+</view>

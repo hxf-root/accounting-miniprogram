@@ -1,0 +1,110 @@
+<view class="fitness-page">
+  <!-- 今日概览 -->
+  <view class="stats-card">
+    <view class="stats-header">
+      <text class="stats-title">今日健身</text>
+      <text class="stats-date">{{currentDate}}</text>
+    </view>
+    <view class="stats-body">
+      <view class="stats-item">
+        <text class="stats-icon">⏱️</text>
+        <text class="stats-value">{{todayStats.totalMinutes}}</text>
+        <text class="stats-label">分钟</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-icon">🔥</text>
+        <text class="stats-value">{{todayStats.totalCalories}}</text>
+        <text class="stats-label">卡路里</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-icon">📋</text>
+        <text class="stats-value">{{todayStats.activityCount}}</text>
+        <text class="stats-label">活动</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 目标进度 -->
+  <view class="goal-card">
+    <view class="goal-header">
+      <text class="goal-title">{{goalText}}</text>
+      <text class="goal-progress">{{goalEnabled ? goalProgress + '%' : '--'}}</text>
+    </view>
+    <view class="progress-bar">
+      <view class="progress-fill {{goalStatusClass}}" style="width: {{goalProgress}}%"></view>
+    </view>
+    <view class="goal-footer">
+      <text class="goal-status {{goalStatusClass}}">{{goalStatusText}}</text>
+      <text class="goal-action" wx:if="{{goalEnabled}}" bindtap="goToRecord">去记录 ></text>
+      <text class="goal-action" wx:else bindtap="goToSettings">去设置 ></text>
+    </view>
+  </view>
+
+  <!-- 快捷记录 -->
+  <view class="section">
+    <view class="section-title">
+      快捷记录
+      <text class="section-action" bindtap="goToRecord">全部 ></text>
+    </view>
+    <view class="quick-activities">
+      <view class="quick-item" 
+            wx:for="{{quickActivities}}" 
+            wx:key="id"
+            data-activity="{{item}}"
+            bindtap="onQuickActivity">
+        <view class="quick-icon" style="background-color: {{item.color}}">
+          <text class="icon-text">{{item.icon}}</text>
+        </view>
+        <text class="quick-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最近记录 -->
+  <view class="section">
+    <view class="section-title">
+      最近记录
+      <text class="section-action" bindtap="goToHistory">查看全部 ></text>
+    </view>
+    <view class="recent-list" wx:if="{{recentActivities.length > 0}}">
+      <view class="recent-item" wx:for="{{recentActivities}}" wx:key="id">
+        <view class="recent-left">
+          <view class="recent-icon" style="background-color: {{item.color}}">
+            <text class="icon-text">{{item.icon}}</text>
+          </view>
+          <view class="recent-info">
+            <text class="recent-name">{{item.name}}</text>
+            <text class="recent-time">{{item.date}} {{item.time}}</text>
+          </view>
+        </view>
+        <view class="recent-right">
+          <text class="recent-minutes">{{item.minutes}}分钟</text>
+          <text class="recent-calories">{{item.calories}}卡路里</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty-state" wx:if="{{recentActivities.length === 0}}">
+      <text class="empty-icon">🏃</text>
+      <text class="empty-text">还没有健身记录</text>
+      <text class="empty-subtext">点击上方按钮开始记录</text>
+    </view>
+  </view>
+
+  <!-- 功能导航 -->
+  <view class="section">
+    <view class="nav-grid">
+      <view class="nav-item" bindtap="goToAnalytics">
+        <text class="nav-icon">📊</text>
+        <text class="nav-name">数据分析</text>
+      </view>
+      <view class="nav-item" bindtap="goToHistory">
+        <text class="nav-icon">📅</text>
+        <text class="nav-name">历史记录</text>
+      </view>
+      <view class="nav-item" bindtap="goToSettings">
+        <text class="nav-icon">🎯</text>
+        <text class="nav-name">目标设置</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,22 @@
+# Python / backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+backend/venv/
+.env
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Mini-program
+miniprogram_dev/
+miniprogram_npm/

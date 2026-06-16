@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="header">
+    <text class="back-btn" bindtap="onCancel">← 返回</text>
+    <text class="title">健身目标设置</text>
+    <text class="placeholder"></text>
+  </view>
+
+  <view class="section">
+    <text class="section-title">每日健身目标</text>
+
+    <view class="goal-setting">
+      <text class="label">目标时长</text>
+      <view class="input-group">
+        <input type="number" value="{{dailyGoal.minutes}}" bindinput="onMinutesChange" placeholder="请输入目标时长" class="input" />
+        <text class="unit">分钟/天</text>
+      </view>
+      <text class="hint">建议每日运动 30-60 分钟</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="goal-setting">
+      <text class="label">目标卡路里</text>
+      <view class="input-group">
+        <input type="number" value="{{dailyGoal.calories}}" bindinput="onCaloriesChange" placeholder="请输入目标卡路里" class="input" />
+        <text class="unit">卡路里/天</text>
+      </view>
+      <text class="hint">建议每日消耗 200-500 卡路里</text>
+    </view>
+  </view>
+
+  <view class="button-container">
+    <button bindtap="onSaveGoal" class="save-btn">保存目标</button>
+  </view>
+</view>

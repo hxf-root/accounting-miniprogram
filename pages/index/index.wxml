@@ -1,0 +1,109 @@
+<view class="page">
+  <!-- 顶部安全区 -->
+  <view class="status-bar"></view>
+
+  <!-- 月度统计卡片 (毛玻璃) -->
+  <view class="glass-card stats-card">
+    <view class="stats-header">
+      <text class="stats-month">{{currentYear}}年{{currentMonth}}月</text>
+      <text class="stats-subtitle">本月概览</text>
+    </view>
+    <view class="stats-body">
+      <view class="stats-item">
+        <text class="stats-label">支出</text>
+        <text class="stats-value amount-expense">¥{{expenseText}}</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-label">收入</text>
+        <text class="stats-value amount-income">¥{{incomeText}}</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-label">结余</text>
+        <text class="stats-value" style="color: {{balanceColor}}">¥{{balanceText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 预算进度 -->
+  <view class="glass-card">
+    <view class="budget-header">
+      <view class="section-title">📊 月预算</view>
+      <text class="budget-link" bindtap="goToSettings">设置 ›</text>
+    </view>
+    <view wx:if="{{budgetEnabled}}">
+      <view class="budget-row">
+        <text class="budget-label">本月已用</text>
+        <text class="budget-value">¥{{expenseText}} / ¥{{budgetText}}</text>
+      </view>
+      <view class="budget-progress-track">
+        <view class="budget-progress-fill {{budgetHintClass}}" style="width: {{budgetProgress}}%;"></view>
+      </view>
+      <text class="budget-hint {{budgetHintClass}}">{{budgetHint}}</text>
+    </view>
+    <view wx:else class="budget-empty">
+      <text class="budget-empty-text">去「我的」页设置月预算，控制开销</text>
+    </view>
+  </view>
+
+  <!-- 支出占比饼图 -->
+  <view class="glass-card" wx:if="{{hasExpenseData}}">
+    <view class="section-title">🧩 支出分布</view>
+    <view class="pie-chart-wrap">
+      <view class="pie-chart">
+        <view class="pie-ring" style="{{pieChartStyle}}"></view>
+        <view class="pie-center">
+          <text class="pie-center-label">支出</text>
+          <text class="pie-center-value">¥{{expenseText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="chart-legend">
+      <view class="legend-item" wx:for="{{pieChartData}}" wx:key="name">
+        <view class="legend-dot" style="background: {{item.color}}"></view>
+        <text class="legend-name">{{item.name}}</text>
+        <text class="legend-percent">{{item.percentage}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最近5条记录 -->
+  <view class="glass-card">
+    <view class="section-title">
+      最近记录
+      <text class="budget-link" bindtap="goToHistory">全部 ›</text>
+    </view>
+    <view class="recent-list" wx:if="{{recentBills.length > 0}}">
+      <view class="bill-item" wx:for="{{recentBills}}" wx:key="id">
+        <view class="category-icon" style="background-color: {{item.category_color || '#5cb8a0'}}">
+          <text class="icon-text">{{(item.category_name || '?')[0]}}</text>
+        </view>
+        <view class="bill-info">
+          <view class="bill-top">
+            <text class="bill-category">{{item.category_name}}</text>
+            <text class="payment-tag {{item.payment_method}}">{{getPaymentMethodName(item.payment_method)}}</text>
+          </view>
+          <text class="bill-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+          <text class="bill-date">{{item.date}} {{item.time}}</text>
+        </view>
+        <text class="bill-amount {{item.type === 'expense' ? 'amount-expense' : 'amount-income'}}">
+          {{item.type === 'expense' ? '-' : '+'}}¥{{parseFloat(item.amount).toFixed(2)}}
+        </text>
+      </view>
+    </view>
+    <view class="empty-state" wx:if="{{recentBills.length === 0}}">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">还没有记账记录</text>
+      <text class="empty-subtext">点右下角 + 开始记账</text>
+    </view>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer"></view>
+</view>
+
+<!-- 浮动记账按钮 -->
+<view class="fab" bindtap="goToRecord">
+  <text>+</text>
+</view>

@@ -1,0 +1,145 @@
+/* 抱布记 · 毛玻璃绿主题 - 全局样式 */
+page {
+  --bg: #f0f6f3;
+  --glass: rgba(255,255,255,0.6);
+  --glass-border: rgba(255,255,255,0.75);
+  --text: #1a2e2a;
+  --text-secondary: #6b8a80;
+  --text-muted: #a0b8af;
+  --accent: #5cb8a0;
+  --accent-dark: #4aa38c;
+  --accent-light: #d4f0e4;
+  --expense: #e86a6a;
+  --income: #5ba87f;
+  --radius: 16px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.04);
+
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* 玻璃卡片 */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* 标题 */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+
+/* 金额颜色 */
+.amount-expense { color: var(--expense); }
+.amount-income { color: var(--income); }
+
+/* 按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 24px;
+}
+
+.btn-primary::after { border: none; }
+
+.btn-outline {
+  background: rgba(0,0,0,0.04);
+  color: var(--text);
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 0;
+}
+
+.btn-outline::after { border: none; }
+
+/* 浮动按钮 */
+.fab {
+  position: fixed;
+  right: 24px;
+  bottom: 120px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 300;
+  box-shadow: 0 4px 16px rgba(92,184,160,0.4);
+  z-index: 100;
+}
+
+.fab::after { border: none; }
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+.empty-subtext { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
+
+/* 弹窗 */
+.popup-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.popup-content {
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-height: 80vh;
+  box-sizing: border-box;
+}
+
+/* 输入框通用 */
+input, textarea {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 加载动画 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}

@@ -1,0 +1,85 @@
+<view class="analytics-page">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="back-btn" bindtap="navigateBack">← 返回</text>
+    <text class="title">数据分析</text>
+    <text class="placeholder"></text>
+  </view>
+
+  <!-- 时间范围选择 -->
+  <view class="time-range">
+    <view class="range-item {{timeRange === 'week' ? 'active' : ''}}" data-range="week" bindtap="onTimeRangeChange">周</view>
+    <view class="range-item {{timeRange === 'month' ? 'active' : ''}}" data-range="month" bindtap="onTimeRangeChange">月</view>
+    <view class="range-item {{timeRange === 'year' ? 'active' : ''}}" data-range="year" bindtap="onTimeRangeChange">年</view>
+  </view>
+
+  <!-- 统计概览 -->
+  <view class="stats-card">
+    <view class="stats-grid">
+      <view class="stats-item">
+        <text class="stats-icon">⏱️</text>
+        <text class="stats-value">{{stats.totalMinutes}}</text>
+        <text class="stats-label">总时长(分钟)</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-icon">🔥</text>
+        <text class="stats-value">{{stats.totalCalories}}</text>
+        <text class="stats-label">总热量(卡路里)</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-icon">📋</text>
+        <text class="stats-value">{{stats.totalActivities}}</text>
+        <text class="stats-label">活动次数</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-icon">📊</text>
+        <text class="stats-value">{{stats.averageMinutes}}</text>
+        <text class="stats-label">平均时长(分钟)</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 活动类型分布 -->
+  <view class="section">
+    <view class="section-title">活动类型分布</view>
+    <view class="distribution-list">
+      <view class="distribution-item" wx:for="{{activityDistribution}}" wx:key="name">
+        <view class="distribution-left">
+          <view class="distribution-icon" style="background-color: {{item.color}}">
+            <text class="icon-text">{{item.icon}}</text>
+          </view>
+          <text class="distribution-name">{{item.name}}</text>
+        </view>
+        <view class="distribution-right">
+          <text class="distribution-value">{{item.minutes}}分钟</text>
+          <text class="distribution-percent">{{item.percentage}}%</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 趋势分析 -->
+  <view class="section">
+    <view class="section-title">健身趋势</view>
+    <view class="trend-list">
+      <view class="trend-item" wx:for="{{trendData}}" wx:key="date">
+        <text class="trend-date">{{item.date}}</text>
+        <view class="trend-bars">
+          <view class="trend-bar-container">
+            <view class="trend-bar minutes" style="height: {{(item.minutes / 120) * 100}}%"></view>
+            <text class="trend-label">{{item.minutes}}分钟</text>
+          </view>
+          <view class="trend-bar-container">
+            <view class="trend-bar calories" style="height: {{(item.calories / 600) * 100}}%"></view>
+            <text class="trend-label">{{item.calories}}卡路里</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 导出按钮 -->
+  <view class="section">
+    <button class="btn-export" bindtap="onExportData">导出数据</button>
+  </view>
+</view>

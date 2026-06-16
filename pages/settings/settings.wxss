@@ -1,0 +1,390 @@
+/* 设置页 */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+/* 顶栏 */
+.header {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 12px;
+  position: relative;
+  z-index: 10;
+}
+
+.header-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.header-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 内容区滚动 */
+.content-scroll {
+  flex: 1;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 加载 */
+.loading {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* 统计概览 */
+.overview-card {
+  margin-bottom: 12px;
+}
+
+.overview-row {
+  display: flex;
+  gap: 10px;
+}
+
+.overview-item {
+  flex: 1;
+  background: rgba(255,255,255,0.5);
+  border-radius: 12px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.overview-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.overview-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.overview-expense {
+  color: var(--expense);
+}
+
+.overview-income {
+  color: var(--income);
+}
+
+/* 设置行 */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setting-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.setting-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.setting-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 10px;
+  padding: 6px 12px;
+  min-width: 120px;
+}
+
+.setting-currency {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.setting-input {
+  text-align: right;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 28px;
+  width: 100px;
+}
+
+/* 预算进度条 */
+.budget-bar-wrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+
+.budget-bar {
+  height: 6px;
+  background: rgba(92,184,160,0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.budget-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* 操作行 */
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.action-row:active {
+  opacity: 0.6;
+}
+
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-icon {
+  font-size: 22px;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.5);
+  border-radius: 10px;
+}
+
+.action-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.action-label-danger {
+  color: var(--expense);
+}
+
+.action-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.action-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.action-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.04);
+  margin: 10px 0;
+}
+
+/* 危险卡片 */
+.danger-card {
+  border: 1px solid rgba(232,106,106,0.2);
+}
+
+.danger-icon {
+  background: rgba(232,106,106,0.1);
+}
+
+/* 关于信息 */
+.about-card {
+  padding: 12px 16px;
+}
+
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.about-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.about-value {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.about-divider {
+  height: 1px;
+  background: rgba(0,0,0,0.04);
+}
+
+/* 退出登录 */
+.logout-wrap {
+  padding: 20px 0;
+}
+
+.logout-btn {
+  width: 100%;
+  color: var(--expense);
+  font-size: 14px;
+  background: rgba(232,106,106,0.06);
+  border-radius: 12px;
+  padding: 14px 0;
+}
+
+/* 弹窗通用 */
+.popup-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.popup-content {
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-height: 80vh;
+  box-sizing: border-box;
+}
+
+.modal-header {
+  text-align: center;
+  padding-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 20px;
+}
+
+.modal-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.modal-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+}
+
+.modal-subtext {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  padding: 14px 0;
+  border-radius: 999px;
+}
+
+/* 预算编辑弹窗输入 */
+.budget-input-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 14px;
+  padding: 12px 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.budget-input-currency {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.budget-input {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 32px;
+  width: 100%;
+}
+
+/* 底部安全区 */
+.bottom-safe {
+  height: 40px;
+}

@@ -1,0 +1,72 @@
+<view class="login-page">
+  <!-- 背景装饰 -->
+  <view class="bg-circle bg-circle-1"></view>
+  <view class="bg-circle bg-circle-2"></view>
+  <view class="bg-circle bg-circle-3"></view>
+
+  <!-- Logo 区域 -->
+  <view class="logo-area">
+    <text class="logo-icon">📒</text>
+    <text class="logo-text">抱布记</text>
+    <text class="logo-sub">记录生活点滴</text>
+  </view>
+
+  <!-- 登录表单卡片 -->
+  <view class="login-card glass-card">
+    <text class="form-title">{{isRegister ? '注册账号' : '欢迎回来'}}</text>
+    <text class="form-subtitle">{{isRegister ? '创建一个新账号开始使用' : '登录你的账号继续'}}</text>
+
+    <!-- 用户名输入 -->
+    <view class="input-group">
+      <text class="input-label">用户名</text>
+      <view class="input-wrapper">
+        <text class="input-icon">👤</text>
+        <input
+          class="input-field"
+          placeholder="请输入用户名"
+          placeholder-class="input-placeholder"
+          value="{{username}}"
+          bindinput="onUsernameInput"
+          maxlength="20"
+        />
+      </view>
+    </view>
+
+    <!-- 密码输入 -->
+    <view class="input-group">
+      <text class="input-label">密码</text>
+      <view class="input-wrapper">
+        <text class="input-icon">🔒</text>
+        <input
+          class="input-field"
+          type="password"
+          placeholder="请输入密码"
+          placeholder-class="input-placeholder"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+          maxlength="32"
+        />
+      </view>
+    </view>
+
+    <!-- 按钮 -->
+    <button
+      class="btn-primary login-btn"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+      bindtap="onLogin"
+    >
+      {{isRegister ? '注册并登录' : '登 录'}}
+    </button>
+
+    <!-- 切换登录/注册 -->
+    <view class="switch-row">
+      <text class="switch-text">
+        {{isRegister ? '已有账号？' : '没有账号？'}}
+      </text>
+      <text class="switch-link" bindtap="toggleMode">
+        {{isRegister ? '去登录' : '注册新账号'}}
+      </text>
+    </view>
+  </view>
+</view>
