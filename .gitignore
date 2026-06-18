@@ -1,15 +1,21 @@
-# Python / backend
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-backend/venv/
-.env
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Database
 *.db
 
-# OS
-.DS_Store
-Thumbs.db
+# Environment
+.env
 
 # IDE
 .idea/
@@ -17,6 +23,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Mini-program
-miniprogram_dev/
-miniprogram_npm/
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+.pytest_cache/
+.mypy_cache/
