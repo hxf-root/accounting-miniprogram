@@ -13,6 +13,14 @@ env/
 
 # Database
 *.db
+backend/backups/
+
+# Logs
+backend/logs/
+
+# Run
+*.pid
+*.server.pid
 
 # Environment
 .env
