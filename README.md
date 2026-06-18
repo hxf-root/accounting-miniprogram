@@ -1,168 +1,275 @@
-# 抱布记 - 个人记账微信小程序
+# 抱布记 📒 — 个人记账 + 健身小程序
 
-一款简洁、清爽的个人记账工具，数据本地存储，保护您的隐私。
+一款全栈微信小程序，覆盖**记账理财**与**健身记录**两大生活模块。  
+前端基于微信小程序原生框架，后端基于 FastAPI + SQLite，数据云端存储，多端同步。
 
-## 功能特性
+> **AppID**: `wxe71d9fa12da3a855`  
+> **UI 风格**: 毛玻璃绿 — 柔和、通透、护眼
 
-### 核心功能
-- 快速记账：3秒内完成一笔记录
-- 收支分类：支持支出和收入分类管理
-- 支付方式：支持微信支付（绿色）、支付宝（蓝色）、现金、银行卡、信用卡等
-- 数据本地存储：使用微信小程序本地存储，无需登录，保护隐私
+---
 
-### 页面功能
+## ✨ 功能特性
 
-#### 首页（仪表盘）
-- 本月收支概览（支出、收入、结余）
-- 支出占比饼图（按分类统计）
-- 最近5笔记录列表
-- 浮动记账按钮
+### 📊 记账模块
 
-#### 记账页面
-- 支出/收入切换
-- 自定义数字键盘
-- 分类选择（横向滚动）
-- 支付方式选择（带颜色标识）
-  - 微信（绿色 #07C160）
-  - 支付宝（蓝色 #1677FF）
-  - 现金（橙色）
-  - 银行卡（紫色）
-- 备注输入（支持常用标签快速选择）
-- 日期时间选择
+| 页面 | 功能 |
+|------|------|
+| **首页/仪表盘** | 本月收支概览、支出占比饼图、预算进度、最近记录 |
+| **记账** | 自建数字键盘、收支分类选择、支付方式（微信/支付宝/现金/银行卡/信用卡）、备注+常用标签、日期时间选择 |
+| **明细** | 日期分组展示、TOP统计栏、筛选（类型/支付方式/时间范围）、左滑编辑/删除 |
+| **分类管理** | 支出/收入分类切换、添加自定义分类（图标+颜色）、编辑/删除/重置默认 |
+| **导入账单** | 按自然月查看并批量导入账单记录 |
 
-#### 明细页面
-- 按日期分组展示账单
-- 顶部统计栏（支出、收入、结余）
-- 筛选功能：
-  - 按类型筛选（支出/收入）
-  - 按支付方式筛选（微信、支付宝等）
-  - 按时间范围筛选（近7天、近30天、自定义）
-- 左滑操作：编辑、删除
+### 💪 健身模块
 
-#### 设置页面
-- 记账统计（总笔数、总支出、总收入）
-- 分类管理（支出/收入分类）
-- 数据导出（JSON格式，复制到剪贴板）
-- 数据导入（从JSON恢复）
-- 清空数据
-- 关于页面
+| 页面 | 功能 |
+|------|------|
+| **今日运动** | 今日运动统计概览 |
+| **运动记录** | 运动类型选择、时长、卡路里计算 |
+| **运动分析** | 周期统计视图 |
+| **历史记录** | 历史运动数据回顾 |
+| **设置** | 每日运动目标配置 |
 
-#### 分类管理页面
-- 支出/收入分类切换
-- 添加自定义分类（支持选择图标和颜色）
-- 编辑分类
-- 删除自定义分类
-- 重置默认分类
+### ⚙️ 通用
 
-## 技术栈
+- **用户登录/注册** — 简单账号密码，JWT 认证
+- **设置** — 月预算、每日健身目标、数据导出/导入、清空数据
+- **数据同步** — 所有数据存储在云端，换手机不丢
 
-- **框架**：微信小程序原生开发
-- **组件库**：原生组件（无需 npm 构建）
-- **数据存储**：wx.setStorageSync / wx.getStorageSync
-- **样式**：WXSS（使用 CSS 变量定义主题色）
+---
 
-## 架构约定（便于后续扩展）
+## 🏗️ 架构
 
-- **模块清单化**：每个功能模块通过 `modules/*/manifest.js` 声明（id、页面、能力、版本）
-- **统一注册**：`utils/moduleManager.js` 只负责注册与读取模块，不耦合具体业务
-- **数据版本迁移**：`utils/migrations.js` + `SCHEMA_VERSION` 用于升级时兼容旧数据
-- **初始化入口**：`utils/init.js` 在启动时执行迁移和基础数据兜底
+```
+┌──────────────────────────────┐
+│     微信小程序（前端）          │
+│  WXML + WXSS + JS（原生）     │
+│  utils/api.js → HTTP 调用     │
+└──────────┬───────────────────┘
+           │ HTTP (REST API)
+           ▼
+┌──────────────────────────────┐
+│    FastAPI 后端（本机服务器）    │
+│  localhost:8089               │
+│                              │
+│  ┌─ routers/ ─────────────┐  │
+│  │ auth bills categories  │  │
+│  │ fitness stats settings │  │
+│  │ data                   │  │
+│  └────────────────────────┘  │
+│         │                    │
+│         ▼                    │
+│  SQLite (baobaoji.db)        │
+└──────────────────────────────┘
+```
 
-新增未知功能时，优先按“新增模块 manifest + 新增页面 + 新增 service”的方式接入，尽量不改现有模块逻辑。
+### 后端 API 路由
 
-## 主题色
+| 路由 | 说明 |
+|------|------|
+| `POST /api/auth/register` | 注册 |
+| `POST /api/auth/login` | 登录（返回 JWT） |
+| `GET /api/bills` | 账单列表（支持筛选分页） |
+| `POST /api/bills` | 创建账单 |
+| `PUT /api/bills/:id` | 更新账单 |
+| `DELETE /api/bills/:id` | 删除账单 |
+| `GET /api/categories` | 分类列表 |
+| `POST /api/categories` | 创建分类 |
+| `DELETE /api/categories/:id` | 删除分类 |
+| `GET /api/stats/monthly` | 月度统计 |
+| `GET /api/stats/today` | 今日统计 |
+| `GET /api/fitness/records` | 健身记录列表 |
+| `POST /api/fitness/records` | 创建健身记录 |
+| `DELETE /api/fitness/records/:id` | 删除健身记录 |
+| `GET/PUT /api/settings` | 用户设置 |
+| `GET /api/data/export` | 数据导出 |
+| `POST /api/data/import` | 数据导入 |
+| `GET /api/health` | 健康检查 |
 
-- **主色调**：#4ECDC4（薄荷绿）
-- **支出颜色**：#FF6B6B（红色）
-- **收入颜色**：#00B894（绿色）
-- **微信支付**：#07C160（绿色）
-- **支付宝**：#1677FF（蓝色）
-- **现金**：#FF9500（橙色）
-- **银行卡**：#5856D6（紫色）
+---
 
-## 项目结构
+## 🎨 设计系统
+
+### 配色
+
+| 角色 | 色值 | 用途 |
+|------|------|------|
+| **主色调** | `#5cb8a0` | 品牌主色、强调色 |
+| **主色亮** | `#7cccb8` | 渐变、装饰 |
+| **背景** | `#f0f6f3` | 页面背景 |
+| **卡片** | `rgba(255,255,255,0.7)` | 毛玻璃卡片 |
+| **支出** | `#FF6B6B` | 支出标识 |
+| **收入** | `#00B894` | 收入标识 |
+
+### 组件
+
+- 毛玻璃（glass-card）卡片组件
+- 自建数字键盘
+- 横向滚动分类选择器
+- 下拉刷新支持
+- 自定义导航栏
+
+---
+
+## 🛠️ 技术栈
+
+| 层 | 技术 |
+|----|------|
+| **前端框架** | 微信小程序原生（WXML / WXSS / JS） |
+| **后端框架** | Python FastAPI |
+| **数据库** | SQLAlchemy + SQLite |
+| **认证** | JWT（python-jose） |
+| **密码** | bcrypt（passlib） |
+| **运行环境** | Uvicorn |
+
+---
+
+## 🚀 快速开始
+
+### 1. 启动后端服务
+
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+# → 服务运行在 http://localhost:8089
+```
+
+API 默认监听 `0.0.0.0:8089`，首次启动自动创建 SQLite 数据库 `baobaoji.db`。
+
+### 2. 导入小程序
+
+1. 打开微信开发者工具
+2. 导入项目，选择本项目根目录
+3. AppID 填写 `wxe71d9fa12da3a855`（或你的测试号）
+4. 修改 `utils/api.js` 中的 `BASE_URL` 指向你的后端地址
+5. 点击编译运行
+
+### 3. Nginx 反向代理（可选）
+
+后端已在服务器通过 nginx 代理到 `/api/baobaoji/` 路径：
+
+```nginx
+location /api/baobaoji/ {
+    rewrite ^/api/baobaoji/(.*)$ /$1 break;
+    proxy_pass http://127.0.0.1:8089;
+}
+```
+
+---
+
+## 📁 项目结构
 
 ```
 accounting-miniprogram/
-├── app.js                 # 应用入口
-├── app.json               # 应用配置
-├── app.wxss               # 全局样式
-├── sitemap.json           # 站点地图
-├── project.config.json    # 项目配置
-├── utils/
-│   └── storage.js         # 数据存储服务
-├── modules/
-│   ├── accounting/manifest.js  # 记账模块声明
-│   └── fitness/manifest.js     # 健身模块声明
-├── pages/
-│   ├── index/             # 首页
-│   ├── record/            # 记账页面
-│   ├── history/           # 明细页面
-│   ├── settings/          # 设置页面
-│   └── category/          # 分类管理页面
-└── images/                # 图片资源（需要自行添加）
+├── app.js                    # 应用入口
+├── app.json                  # 应用配置（13个页面）
+├── app.wxss                  # 全局样式（CSS变量、毛玻璃组件）
+├── sitemap.json
+├── project.config.json
+│
+├── backend/                  # FastAPI 后端
+│   ├── main.py               # 服务入口
+│   ├── database.py           # SQLAlchemy 数据库配置
+│   ├── models.py             # 数据模型（User/Bill/Category/FitnessRecord/Settings）
+│   ├── schemas.py            # Pydantic 数据模式
+│   ├── auth.py               # JWT 认证工具
+│   ├── routers/              # API 路由
+│   │   ├── auth.py
+│   │   ├── bills.py
+│   │   ├── categories.py
+│   │   ├── fitness.py
+│   │   ├── stats.py
+│   │   ├── settings.py
+│   │   └── data.py
+│   └── requirements.txt
+│
+├── pages/                    # 前端页面（13个）
+│   ├── login/                # 登录/注册
+│   ├── main/                 # 模块总览首页
+│   ├── index/                # 记账仪表盘
+│   ├── record/               # 记账输入
+│   ├── history/              # 账单明细
+│   ├── settings/             # 设置
+│   ├── category/             # 分类管理
+│   ├── import-bill/          # 导入账单
+│   └── fitness/              # 健身模块（4个页面）
+│       ├── index/
+│       ├── record/
+│       ├── analytics/
+│       └── history/
+│
+├── modules/                  # 模块声明
+│   ├── accounting/manifest.js
+│   └── fitness/manifest.js
+│
+├── utils/                    # 工具库
+│   ├── api.js                # API 客户端
+│   ├── config.js             # 配置常量
+│   ├── storage.js            # 本地存储
+│   ├── init.js               # 初始化
+│   ├── migrations.js          # 数据迁移
+│   ├── moduleManager.js      # 模块管理器
+│   └── calorieCalculator.js  # 卡路里计算器
+│
+└── images/                   # Tab 图标
+    ├── home.png / home-active.png
+    ├── list.png / list-active.png
+    ├── user.png / user-active.png
 ```
 
-## 运行步骤
+---
 
-### 1. 添加 Tab 图标
+## 🔄 数据模型
 
-在 `images/` 目录下添加6个图标文件：
-- home.png / home-active.png
-- list.png / list-active.png  
-- user.png / user-active.png
+### User
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| username | String(50) | 用户名（唯一） |
+| password_hash | String(128) | bcrypt 哈希 |
+| created_at | DateTime | 注册时间 |
 
-可以使用任意 81x81 像素的图标，或使用微信开发者工具的默认图标。
+### Bill
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 所属用户 |
+| type | String(10) | expense / income |
+| amount | Float | 金额 |
+| category_id | Integer | 分类 ID |
+| category_name | String(50) | 分类名称 |
+| payment_method | String(20) | wechat/alipay/cash/bankcard/credit |
+| remark | Text | 备注 |
+| date | String(10) | 日期 2026-06-15 |
+| time | String(5) | 时间 12:30 |
 
-### 2. 导入项目
+### Category
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 所属用户 |
+| type | String(10) | expense / income |
+| name | String(50) | 分类名称 |
+| icon | String(10) | Emoji 图标 |
+| color | String(20) | 颜色值 |
+| is_custom | Boolean | 是否自定义 |
+| sort_order | Integer | 排序 |
 
-1. 打开微信开发者工具
-2. 点击「项目」->「导入项目」
-3. 选择 `accounting-miniprogram` 目录
-4. 填写 AppID（如果没有，选择「测试号」）
-5. 点击「导入」
+### FitnessRecord
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 所属用户 |
+| exercise_type | String(50) | 运动类型 |
+| duration_minutes | Integer | 时长（分钟） |
+| calories | Integer | 消耗卡路里 |
+| date | String(10) | 日期 |
+| time | String(5) | 时间 |
+| note | Text | 备注 |
 
-### 3. 运行
+---
 
-项目无需 npm 构建，直接导入即可运行。
-
-## 使用说明
-
-### 首次使用
-1. 打开小程序，默认会初始化默认分类
-2. 点击右下角「+」按钮开始记账
-3. 选择分类、支付方式，输入金额和备注
-4. 点击确认保存
-
-### 查看明细
-1. 点击底部「明细」Tab
-2. 可按支付方式、时间范围筛选
-3. 左滑账单可进行编辑或删除
-
-### 数据备份
-1. 进入「我的」页面
-2. 点击「导出数据」
-3. 数据已复制到剪贴板，可粘贴保存
-
-### 数据恢复
-1. 进入「我的」页面
-2. 点击「导入数据」
-3. 粘贴之前导出的 JSON 数据
-
-## 注意事项
-
-1. 数据存储在本地，删除小程序或更换手机会丢失数据，请定期导出备份
-2. 默认分类不能删除，只能删除自定义分类
-3. 导入数据会覆盖现有数据，请确保已备份
-
-## 后续优化方向
-
-- [ ] 添加月度预算设置和预警
-- [ ] 添加数据图表统计（趋势图、柱状图）
-- [ ] 添加记账提醒功能
-- [ ] 支持云同步（可选）
-- [ ] 添加更多主题色选择
-
-## License
+## 📄 License
 
 MIT
