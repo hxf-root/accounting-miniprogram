@@ -1,3 +1,5 @@
+<wxs src="../../utils/firstchar.wxs" module="f" />
+
 <view class="page">
   <!-- 统计概览 -->
   <view class="glass-card stats-row">
@@ -51,7 +53,7 @@
         <view class="bill-row" wx:for="{{item.bills}}" wx:for-item="bill" wx:key="id">
           <view class="bill-left" bindtap="onEditBill" data-id="{{bill.id}}">
             <view class="bill-avatar" style="background:{{bill.category_color || '#5cb8a0'}}">
-              <text class="avatar-text">{{(bill.category_name || '?')[0]}}</text>
+              <text class="avatar-text">{{f.firstChar(bill.category_name, '?')}}</text>
             </view>
             <view class="bill-mid">
               <view class="bill-top">

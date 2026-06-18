@@ -1,0 +1,9 @@
+// WXS 工具：取字符串首字符，WXML 不支持 JavaScript 数组下标
+var firstChar = function (str, fallback) {
+  var s = str || fallback || '?'
+  return s.substring(0, 1)
+}
+
+module.exports = {
+  firstChar: firstChar,
+}

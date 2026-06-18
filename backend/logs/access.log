@@ -1,0 +1,12 @@
+INFO:     127.0.0.1:54766 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60800 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60810 - "GET /api/nonexistent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60826 - "POST /api/auth/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:47964 - "GET /api/nonexistent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38970 - "GET /api/nonexistent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38980 - "POST /api/auth/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:58622 - "GET /api/nonexistent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58638 - "POST /api/auth/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:58648 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45018 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55440 - "GET /api/health HTTP/1.1" 200 OK

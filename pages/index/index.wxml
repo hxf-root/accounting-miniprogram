@@ -1,3 +1,5 @@
+<wxs src="../../utils/firstchar.wxs" module="f" />
+
 <view class="page">
   <!-- 顶部安全区 -->
   <view class="status-bar"></view>
@@ -77,7 +79,7 @@
     <view class="recent-list" wx:if="{{recentBills.length > 0}}">
       <view class="bill-item" wx:for="{{recentBills}}" wx:key="id">
         <view class="category-icon" style="background-color: {{item.category_color || '#5cb8a0'}}">
-          <text class="icon-text">{{(item.category_name || '?')[0]}}</text>
+          <text class="icon-text">{{f.firstChar(item.category_name, '?')}}</text>
         </view>
         <view class="bill-info">
           <view class="bill-top">

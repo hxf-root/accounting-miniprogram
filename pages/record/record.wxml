@@ -1,3 +1,5 @@
+<wxs src="../../utils/firstchar.wxs" module="f" />
+
 <view class="page">
   <!-- 类型切换 -->
   <view class="type-switch" style="background:var(--bg)">
@@ -31,7 +33,7 @@
           style="background-color: {{selectedCategory && selectedCategory.id === item.id ? (item.color || '#5cb8a0') : 'rgba(0,0,0,0.04)'}}"
         >
           <text style="color: {{selectedCategory && selectedCategory.id === item.id ? '#fff' : 'var(--text-secondary)'}}">
-            {{(item.name || item.icon || '?')[0]}}
+            {{f.firstChar(item.name, item.icon)}}
           </text>
         </view>
         <text class="cat-name">{{item.name}}</text>
