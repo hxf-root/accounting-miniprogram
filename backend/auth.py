@@ -1,11 +1,13 @@
 import datetime
+import os
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = "baobaoji-secret-key-change-in-production"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "baobaoji-secret-key-change-in-production")
 ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "720"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -23,7 +25,7 @@ def create_token(user_id: int, username: str) -> str:
     payload = {
         "user_id": user_id,
         "username": username,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=30),
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=JWT_EXPIRE_HOURS),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 

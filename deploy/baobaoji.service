@@ -1,0 +1,26 @@
+[Unit]
+Description=抱布记 — 个人记账 + 健身小程序后端
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/accounting-miniprogram/backend
+
+# 环境变量（可选，没有 .env 也正常启动）
+EnvironmentFile=-/home/ubuntu/accounting-miniprogram/backend/.env
+Environment=PYTHONUNBUFFERED=1
+
+# 使用项目 venv 启动
+ExecStart=/home/ubuntu/accounting-miniprogram/backend/.venv/bin/python main.py
+
+# 崩溃后自动重启
+Restart=always
+RestartSec=5
+
+# 日志
+StandardOutput=append:/home/ubuntu/accounting-miniprogram/backend/logs/access.log
+StandardError=append:/home/ubuntu/accounting-miniprogram/backend/logs/error.log
+
+[Install]
+WantedBy=multi-user.target
