@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index
 from database import Base
 
 
@@ -13,6 +13,9 @@ class User(Base):
 
 class Bill(Base):
     __tablename__ = "bills"
+    __table_args__ = (
+        Index("ix_bills_user_date", "user_id", "date"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True, nullable=False)
     type = Column(String(10), nullable=False)  # expense / income
@@ -28,6 +31,9 @@ class Bill(Base):
 
 class Category(Base):
     __tablename__ = "categories"
+    __table_args__ = (
+        Index("ix_categories_user_type", "user_id", "type"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True, nullable=False)
     type = Column(String(10), nullable=False)  # expense / income
@@ -40,6 +46,9 @@ class Category(Base):
 
 class FitnessRecord(Base):
     __tablename__ = "fitness_records"
+    __table_args__ = (
+        Index("ix_fitness_user_date", "user_id", "date"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True, nullable=False)
     exercise_type = Column(String(50), nullable=False)

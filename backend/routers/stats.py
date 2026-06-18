@@ -11,10 +11,15 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 @router.get("/monthly")
 def monthly_stats(year: int, month: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    prefix = f"{year}-{month:02d}"
+    start = f"{year}-{month:02d}-01"
+    if month == 12:
+        end = f"{year + 1}-01-01"
+    else:
+        end = f"{year}-{month + 1:02d}-01"
     bills = db.query(Bill).filter(
         Bill.user_id == user["user_id"],
-        Bill.date.like(f"{prefix}%"),
+        Bill.date >= start,
+        Bill.date < end,
     ).all()
     expense = sum(b.amount for b in bills if b.type == "expense")
     income = sum(b.amount for b in bills if b.type == "income")
@@ -43,7 +48,8 @@ def monthly_stats(year: int, month: int, db: Session = Depends(get_db), user: di
     # 健身统计
     fitness_records = db.query(FitnessRecord).filter(
         FitnessRecord.user_id == user["user_id"],
-        FitnessRecord.date.like(f"{prefix}%"),
+        FitnessRecord.date >= start,
+        FitnessRecord.date < end,
     ).all()
     total_minutes = sum(r.duration_minutes for r in fitness_records)
     total_calories = sum(r.calories for r in fitness_records)
