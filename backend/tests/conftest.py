@@ -3,6 +3,8 @@
 import os
 import tempfile
 
+os.environ.setdefault("JWT_SECRET_KEY", "test-only-jwt-secret-key")
+
 pytest_plugins = []
 
 import pytest

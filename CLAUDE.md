@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **后端**: Python FastAPI + SQLAlchemy ORM + SQLite
 - **部署**: systemd 服务 + Makefile 管理
 
-线上后端地址: `http://81.70.209.199:8089`
+线上后端地址: `https://xuefei.art/api/baobaoji`
 
 ## 运行方式
 
@@ -102,7 +102,7 @@ Tab 栏（4 项）: `pages/main/main`（模块）| `pages/index/index`（记账�
 | GET | `/api/stats/monthly` | 月度统计 |
 | GET | `/api/stats/today` | 今日统计 |
 | GET/PUT | `/api/settings` | 获取/更新设置 |
-| GET/POST | `/api/data/export` `/api/data/import` | 数据导入导出 |
+| GET/POST/DELETE | `/api/data/export` `/api/data/import` `/api/data` | 数据导出、导入与清空 |
 | GET | `/api/health` | 健康检查（含 uptime、database 状态） |
 
 ### 认证机制

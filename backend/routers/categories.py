@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Category
@@ -43,7 +43,11 @@ def _ensure_defaults(db: Session, user_id: int):
 
 
 @router.get("", response_model=list[CategoryOut])
-def list_categories(type_filter: str | None = None, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+def list_categories(
+    type_filter: str | None = Query(None, alias="type"),
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
     _ensure_defaults(db, user["user_id"])
     q = db.query(Category).filter(Category.user_id == user["user_id"])
     if type_filter:

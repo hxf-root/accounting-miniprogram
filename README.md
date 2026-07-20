@@ -5,7 +5,7 @@
 
 > **AppID**: `wxe71d9fa12da3a855`  
 > **UI 风格**: 毛玻璃绿 — 柔和、通透、护眼  
-> **线上后端**: `http://81.70.209.199:8089`
+> **线上后端**: `https://xuefei.art/api/baobaoji`
 
 ---
 
@@ -179,6 +179,7 @@
 |------|------|------|
 | GET | `/api/data/export` | 导出全部数据（JSON） |
 | POST | `/api/data/import` | 导入数据 |
+| DELETE | `/api/data` | 清空当前用户的账单、健身、分类和设置 |
 
 ### 健康检查
 
@@ -237,23 +238,35 @@
 
 ## 🚀 快速开始
 
-### 1. 启动后端服务
+### 1. 准备 Python 3.11 环境
 
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-# → 服务运行在 http://0.0.0.0:8089
+Windows PowerShell：
+
+```powershell
+.\setup.ps1
 ```
 
-首次启动自动创建 SQLite 数据库 `baobaoji.db`。
+Linux/macOS：
+
+```bash
+./start.sh
+```
+
+脚本会在 `backend/.venv` 创建虚拟环境并安装固定依赖；`.venv` 不提交到 Git。首次启动前，将 `backend/.env.example` 复制为 `backend/.env`，并生成独立的 `JWT_SECRET_KEY`。首次启动自动创建 SQLite 数据库 `baobaoji.db`。
+
+Windows 启动后端：
+
+```powershell
+Set-Location backend
+& .\.venv\Scripts\python.exe main.py
+```
 
 ### 2. 导入小程序
 
 1. 打开微信开发者工具
 2. 导入项目，选择本项目根目录
 3. AppID 填写 `wxe71d9fa12da3a855`（或你的测试号）
-4. 修改 `utils/api.js` 中的 `BASE_URL` 指向你的后端地址
+4. 确认 `utils/api.js` 中的 `BASE_URL` 指向 HTTPS 后端地址
 5. 点击编译运行
 
 ### 3. Nginx 反向代理（可选）

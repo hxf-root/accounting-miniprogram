@@ -5,12 +5,14 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "baobaoji-secret-key-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY must be configured")
 ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "720"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -30,10 +32,20 @@ def create_token(user_id: int, username: str) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(cred: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+def get_current_user(cred: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
+    if cred is None:
+        raise HTTPException(
+            status_code=401,
+            detail="未提供登录凭证",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = cred.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return {"user_id": payload["user_id"], "username": payload["username"]}
     except JWTError:
-        raise HTTPException(status_code=401, detail="无效的登录凭证")
+        raise HTTPException(
+            status_code=401,
+            detail="无效的登录凭证",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

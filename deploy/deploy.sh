@@ -4,6 +4,12 @@
 set -euo pipefail
 
 cd /home/ubuntu/accounting-miniprogram
+ENV_FILE=/home/ubuntu/accounting-miniprogram/backend/.env
+
+if [ ! -f "$ENV_FILE" ] || ! grep -Eq '^JWT_SECRET_KEY=.{32,}$' "$ENV_FILE"; then
+    echo "❌ backend/.env 缺少至少 32 字符的 JWT_SECRET_KEY，停止部署"
+    exit 1
+fi
 
 echo "[1/4] 拉取最新代码..."
 git pull origin main

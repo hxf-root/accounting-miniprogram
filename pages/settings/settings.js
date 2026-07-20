@@ -215,11 +215,7 @@ Page({
   confirmClearData() {
     this.hideClearModal()
     wx.showLoading({ title: '清空中...', mask: true })
-    // 清空：先获取全部数据，导入空数据覆盖
-    api.exportData()
-      .then(() => {
-        return api.importData({ bills: [], fitness: [], settings: {} })
-      })
+    api.clearData()
       .then(() => {
         wx.hideLoading()
         wx.showToast({ title: '已清空所有数据', icon: 'success' })
