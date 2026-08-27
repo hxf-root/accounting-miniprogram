@@ -1,6 +1,6 @@
 """分类 API 路由层（薄层，委托给 service）"""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 @router.get("", response_model=list[CategoryOut])
 def list_categories(
-    type_filter: Optional[str] = None,
+    type_filter: Optional[str] = Query(None, alias="type"),
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
