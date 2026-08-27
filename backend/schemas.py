@@ -137,6 +137,13 @@ class CategoryStats(BaseModel):
     color: str = "#5cb8a0"
 
 
+# --- Data Import/Export ---
+class ImportData(BaseModel):
+    bills: List = []
+    fitness: List = []
+    settings: dict = {}
+
+
 # --- Data ---
 class ExportData(BaseModel):
     bills: List

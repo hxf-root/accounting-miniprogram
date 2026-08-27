@@ -1,11 +1,13 @@
+"""账单 API 路由层（薄层，委托给 service）"""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
 from typing import Optional
+
 from database import get_db
-from models import Bill
-from schemas import BillCreate, BillUpdate, BillOut
 from auth import get_current_user
+from schemas import BillCreate, BillUpdate, BillOut
+from services import bills as bill_service
 
 router = APIRouter(prefix="/api/bills", tags=["bills"])
 
@@ -21,47 +23,30 @@ def list_bills(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    q = db.query(Bill).filter(Bill.user_id == user["user_id"])
-    if type_filter:
-        q = q.filter(Bill.type == type_filter)
-    if payment:
-        q = q.filter(Bill.payment_method == payment)
-    if date_from:
-        q = q.filter(Bill.date >= date_from)
-    if date_to:
-        q = q.filter(Bill.date <= date_to)
-    q = q.order_by(desc(Bill.date), desc(Bill.time), desc(Bill.id))
-    total = q.count()
-    items = q.offset((page - 1) * page_size).limit(page_size).all()
-    return items
+    return bill_service.list_bills(
+        db, user["user_id"],
+        type_filter=type_filter, payment=payment,
+        date_from=date_from, date_to=date_to,
+        page=page, page_size=page_size,
+    )
 
 
 @router.post("", response_model=BillOut)
 def create_bill(data: BillCreate, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    bill = Bill(user_id=user["user_id"], **data.model_dump())
-    db.add(bill)
-    db.commit()
-    db.refresh(bill)
-    return bill
+    return bill_service.create_bill(db, user["user_id"], data)
 
 
 @router.put("/{bill_id}", response_model=BillOut)
 def update_bill(bill_id: int, data: BillUpdate, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    bill = db.query(Bill).filter(Bill.id == bill_id, Bill.user_id == user["user_id"]).first()
-    if not bill:
-        raise HTTPException(404, "账单不存在")
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(bill, k, v)
-    db.commit()
-    db.refresh(bill)
-    return bill
+    result = bill_service.update_bill(db, bill_id, user["user_id"], data)
+    if not result:
+        raise HTTPException(status_code=404, detail="账单不存在")
+    return result
 
 
 @router.delete("/{bill_id}")
 def delete_bill(bill_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    bill = db.query(Bill).filter(Bill.id == bill_id, Bill.user_id == user["user_id"]).first()
-    if not bill:
-        raise HTTPException(404, "账单不存在")
-    db.delete(bill)
-    db.commit()
+    ok = bill_service.delete_bill(db, bill_id, user["user_id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="账单不存在")
     return {"ok": True}
