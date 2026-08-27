@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const { formatDate } = require('../../utils/helpers.js')
 
 const EXERCISE_TYPES = {
   running: { id: 'running', name: '跑步', icon: '🏃', color: '#4ECDC4' },
@@ -31,26 +32,13 @@ Page({
 
   onLoad() {
     this.setData({
-      currentDate: this.formatDate(new Date())
+      currentDate: formatDate(new Date())
     })
     this.loadAll()
   },
 
   onShow() {
     this.loadAll()
-  },
-
-  formatDate(date) {
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return month + '-' + day
-  },
-
-  formatISO(date) {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return y + '-' + m + '-' + d
   },
 
   async loadAll() {

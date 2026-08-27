@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const { formatDate } = require('../../utils/helpers.js')
 
 const EXERCISE_TYPES = {
   running: { name: '跑步', icon: '🏃', color: '#4ECDC4' },
@@ -34,13 +35,6 @@ Page({
     this.loadData()
   },
 
-  formatDate(date) {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return y + '-' + m + '-' + d
-  },
-
   getRangeDates() {
     const end = new Date()
     let start
@@ -54,8 +48,8 @@ Page({
       start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000)
     }
     return {
-      startDate: this.formatDate(start),
-      endDate: this.formatDate(end)
+      startDate: formatDate(start),
+      endDate: formatDate(end),
     }
   },
 

@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const { formatDate } = require('../../utils/helpers.js')
 
 Page({
   data: {

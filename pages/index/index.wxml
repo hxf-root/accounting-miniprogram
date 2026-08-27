@@ -84,7 +84,7 @@
         <view class="bill-info">
           <view class="bill-top">
             <text class="bill-category">{{item.category_name}}</text>
-            <text class="payment-tag {{item.payment_method}}">{{getPaymentMethodName(item.payment_method)}}</text>
+            <text class="payment-tag {{item.payment_method}}">{{getPaymentName(item.payment_method)}}</text>
           </view>
           <text class="bill-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
           <text class="bill-date">{{item.date}} {{item.time}}</text>

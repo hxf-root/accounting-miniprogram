@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const { formatDate, calcStats, calcBudgetPercent } = require('../../utils/helpers.js')
 
 Page({
   data: {
@@ -71,34 +72,14 @@ Page({
    * 统计所有账单
    */
   calcStats(bills) {
-    let totalExpense = 0
-    let totalIncome = 0
-    let count = 0
-    for (const bill of bills) {
-      const amount = Number(bill.amount) || 0
-      if (bill.type === 'expense' || bill.type === 0) {
-        totalExpense += amount
-      } else if (bill.type === 'income' || bill.type === 1) {
-        totalIncome += amount
-      }
-      count++
-    }
-    return {
-      totalCount: count,
-      totalExpense: totalExpense.toFixed(2),
-      totalIncome: totalIncome.toFixed(2),
-      totalExpenseNum: totalExpense,
-      totalIncomeNum: totalIncome,
-    }
+    return calcStats(bills)
   },
 
   /**
    * 计算预算百分比
    */
   calcBudgetPercent(budget, expense) {
-    if (!budget || budget <= 0 || !expense || expense <= 0) return 0
-    const pct = Math.min(100, Math.round((expense / budget) * 100))
-    return pct
+    return calcBudgetPercent(budget, expense)
   },
 
   // ========== 预算相关 ==========
@@ -161,7 +142,7 @@ Page({
         const jsonStr = JSON.stringify(data, null, 2)
         // 写入文件并分享
         const fs = wx.getFileSystemManager()
-        const filePath = `${wx.env.USER_DATA_PATH}/baobaoji_backup_${this.formatDate()}.json`
+        const filePath = `${wx.env.USER_DATA_PATH}/baobaoji_backup_${formatDate()}.json`
         fs.writeFile({
           filePath,
           data: jsonStr,

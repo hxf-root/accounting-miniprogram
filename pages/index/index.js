@@ -1,5 +1,6 @@
 // 记账首页 - 使用 API 后端
 const api = require('../../utils/api.js')
+const { formatAmount, getPaymentName } = require('../../utils/helpers.js')
 
 Page({
   data: {
@@ -71,9 +72,9 @@ Page({
       const recentBills = Array.isArray(allBills) ? allBills : (allBills.items || allBills.data || [])
 
       this.setData({
-        expenseText: expense.toFixed(2),
-        incomeText: income.toFixed(2),
-        balanceText: Math.abs(balance).toFixed(2),
+        expenseText: formatAmount(expense),
+        incomeText: formatAmount(income),
+        balanceText: formatAmount(Math.abs(balance)),
         balanceColor,
         pieChartData,
         pieChartStyle,
@@ -139,11 +140,6 @@ Page({
       budgetHint: hint,
       budgetHintClass: hintClass,
     }
-  },
-
-  getPaymentMethodName(method) {
-    const names = { wechat: '微信', alipay: '支付宝', cash: '现金', bankcard: '银行卡', credit: '信用卡', other: '其他' }
-    return names[method] || method || ''
   },
 
   goToRecord() { wx.navigateTo({ url: '/pages/record/record' }) },

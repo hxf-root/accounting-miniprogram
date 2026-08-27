@@ -58,7 +58,7 @@
             <view class="bill-mid">
               <view class="bill-top">
                 <text class="bill-cat">{{bill.category_name}}</text>
-                <text class="bill-pay pay-{{bill.payment_method}}">{{getPaymentMethodName(bill.payment_method)}}</text>
+                <text class="bill-pay pay-{{bill.payment_method}}">{{getPaymentName(bill.payment_method)}}</text>
               </view>
               <text class="bill-remark" wx:if="{{bill.remark}}">{{bill.remark}}</text>
               <text class="bill-time">{{bill.time}}</text>

@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const { formatAmount } = require('../../utils/helpers.js')
 
 Page({
   data: {
@@ -23,7 +24,6 @@ Page({
   },
 
   onLoad() {
-    // 获取状态栏高度
     const sysInfo = wx.getSystemInfoSync()
     this.setData({
       statusBarHeight: sysInfo.statusBarHeight,
@@ -34,26 +34,20 @@ Page({
     this.loadPageData()
   },
 
-  // 下拉刷新
   onRefresh() {
     this.setData({ refreshing: true })
     this.loadPageData()
   },
 
   loadPageData() {
-    // 获取用户信息
     const user = api.getUser()
     this.setData({
       userName: user.username || '用户',
     })
 
-    // 构建问候语
     this.setGreeting()
-
-    // 构建日期
     this.setTodayDate()
 
-    // 并行加载月度和今日统计
     const now = new Date()
     const year = now.getFullYear()
     const month = now.getMonth() + 1
@@ -65,14 +59,14 @@ Page({
       .then(([monthlyData, todayData]) => {
         this.setData({
           monthly: {
-            expense: this.formatAmount(monthlyData.expense || 0),
-            income: this.formatAmount(monthlyData.income || 0),
+            expense: formatAmount(monthlyData.expense || 0),
+            income: formatAmount(monthlyData.income || 0),
             count: monthlyData.bill_count || 0,
             categories: (monthlyData.category_stats || []).slice(0, 4),
           },
           today: {
-            expense: this.formatAmount(todayData.expense || 0),
-            income: this.formatAmount(todayData.income || 0),
+            expense: formatAmount(todayData.expense || 0),
+            income: formatAmount(todayData.income || 0),
             fitness_minutes: todayData.fitness_minutes || 0,
             fitness_calories: todayData.fitness_calories || 0,
           },
@@ -104,25 +98,15 @@ Page({
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
     const d = String(now.getDate()).padStart(2, '0')
-
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const wd = weekdays[now.getDay()]
-
     this.setData({ todayDate: `${y}年${m}月${d}日 ${wd}` })
   },
 
-  // 金额格式化：保留两位小数
-  formatAmount(val) {
-    if (val === undefined || val === null) return '0.00'
-    return Number(val).toFixed(2)
-  },
-
-  // 跳转到记账模块
   goAccounting() {
     wx.switchTab({ url: '/pages/index/index' })
   },
 
-  // 跳转到健身模块
   goFitness() {
     wx.switchTab({ url: '/pages/fitness/index' })
   },

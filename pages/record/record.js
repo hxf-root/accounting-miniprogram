@@ -1,18 +1,13 @@
 // 记账页 - 使用 API 后端
 const api = require('../../utils/api.js')
+const { formatDate } = require('../../utils/helpers.js')
 
 Page({
   data: {
     type: 'expense',
-
-    // 金额
     amount: '0',
-
-    // 分类
     categories: [],
     selectedCategory: null,
-
-    // 支付方式
     paymentMethods: [
       { id: 'wechat', name: '微信', icon: '微', color: '#07C160' },
       { id: 'alipay', name: '支付宝', icon: '支', color: '#1677FF' },
@@ -22,50 +17,31 @@ Page({
       { id: 'other', name: '其他', icon: '其', color: '#B2BEC3' },
     ],
     selectedPayment: 'wechat',
-
-    // 备注
     remark: '',
     showRemarkInput: false,
-
-    // 日期时间
     date: '',
     time: '',
     showDatePicker: false,
     showTimePicker: false,
-
-    // 快捷备注
     commonRemarks: {
       expense: ['早餐', '午餐', '晚餐', '交通', '购物', '奶茶', '外卖', '买菜', '零食', '话费'],
       income: ['工资', '奖金', '红包', '兼职', '理财', '退款'],
     },
-
-    // 编辑
     isEdit: false,
     editId: null,
   },
 
   onLoad(options) {
-    this.initDateTime()
+    const now = new Date()
+    this.setData({
+      date: formatDate(now),
+      time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+    })
     this.loadCategories()
 
     if (options.id) {
       this.loadBillForEdit(options.id)
     }
-  },
-
-  initDateTime() {
-    const now = new Date()
-    this.setData({
-      date: this._fmtDate(now),
-      time: this._fmtTime(now),
-    })
-  },
-
-  _fmtDate(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  },
-  _fmtTime(d) {
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   },
 
   async loadCategories() {
@@ -157,7 +133,6 @@ Page({
       .selectAll('picker')
       .fields({ node: true, dataset: true })
       .exec(() => {
-        // 直接触发 picker 隐藏组件
         this.setData({ showDatePicker: true })
       })
   },
