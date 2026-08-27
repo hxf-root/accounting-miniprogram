@@ -5,6 +5,12 @@ set -euo pipefail
 SERVICE_NAME=baobaoji
 SERVICE_SRC=/home/ubuntu/accounting-miniprogram/deploy/baobaoji.service
 SERVICE_DST=/etc/systemd/system/${SERVICE_NAME}.service
+ENV_FILE=/home/ubuntu/accounting-miniprogram/backend/.env
+
+if [ ! -f "$ENV_FILE" ] || ! grep -Eq '^JWT_SECRET_KEY=.{32,}$' "$ENV_FILE"; then
+    echo "❌ backend/.env 缺少至少 32 字符的 JWT_SECRET_KEY，停止安装"
+    exit 1
+fi
 
 # 确保日志目录存在
 mkdir -p /home/ubuntu/accounting-miniprogram/backend/logs

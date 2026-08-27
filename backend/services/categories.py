@@ -31,13 +31,15 @@ DEFAULT_INCOME = [
 
 
 def _ensure_defaults(db: Session, user_id: int):
-    existing = db.query(Category).filter(Category.user_id == user_id).count()
-    if existing > 0:
-        return
-    for i, c in enumerate(DEFAULT_EXPENSE):
-        db.add(Category(user_id=user_id, type="expense", sort_order=i, **c))
-    for i, c in enumerate(DEFAULT_INCOME):
-        db.add(Category(user_id=user_id, type="income", sort_order=i, **c))
+    for cat_type in ("expense", "income"):
+        existing = db.query(Category).filter(
+            Category.user_id == user_id, Category.type == cat_type
+        ).count()
+        if existing > 0:
+            continue
+        defaults = DEFAULT_EXPENSE if cat_type == "expense" else DEFAULT_INCOME
+        for i, c in enumerate(defaults):
+            db.add(Category(user_id=user_id, type=cat_type, sort_order=i, **c))
     db.commit()
 
 

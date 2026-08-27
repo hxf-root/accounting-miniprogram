@@ -139,6 +139,7 @@ class CategoryStats(BaseModel):
 
 # --- Data Import/Export ---
 class ImportData(BaseModel):
+    categories: Optional[List] = None
     bills: List = []
     fitness: List = []
     settings: dict = {}

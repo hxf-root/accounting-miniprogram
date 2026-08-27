@@ -7,8 +7,8 @@ Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/accounting-miniprogram/backend
 
-# 环境变量（可选，没有 .env 也正常启动）
-EnvironmentFile=-/home/ubuntu/accounting-miniprogram/backend/.env
+# 环境变量（必需，至少配置 JWT_SECRET_KEY）
+EnvironmentFile=/home/ubuntu/accounting-miniprogram/backend/.env
 Environment=PYTHONUNBUFFERED=1
 
 # 使用项目 venv 启动

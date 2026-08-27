@@ -12,10 +12,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 
+load_dotenv()
+
 from database import engine, Base
 from routers import auth, bills, categories, fitness, stats, settings, data
-
-load_dotenv()
 
 START_TIME = time.time()
 
@@ -58,11 +58,16 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Global exception handlers — uniform JSON error responses
 # ---------------------------------------------------------------------------
-async def _error_response(status_code: int, detail: str, request_id: str | None = None) -> JSONResponse:
+async def _error_response(
+    status_code: int,
+    detail: str,
+    request_id: str | None = None,
+    headers: dict | None = None,
+) -> JSONResponse:
     body = {"error": True, "detail": detail, "code": status_code}
     if request_id:
         body["request_id"] = request_id
-    return JSONResponse(status_code=status_code, content=body)
+    return JSONResponse(status_code=status_code, content=body, headers=headers)
 
 
 @app.exception_handler(HTTPException)
@@ -71,6 +76,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         detail=exc.detail,
         request_id=request.headers.get("X-Request-ID"),
+        headers=exc.headers,
     )
 
 

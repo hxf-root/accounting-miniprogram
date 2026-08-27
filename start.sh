@@ -34,17 +34,22 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # ---- 1. 检查 Python ----
 PYTHON=""
-for cmd in python3 python; do
+for cmd in python3.11 python3 python; do
     if command -v "$cmd" &>/dev/null; then
         PYTHON="$cmd"
         break
     fi
 done
 if [ -z "$PYTHON" ]; then
-    error "未找到 Python，请先安装 Python 3.9+"
+    error "未找到 Python，请先安装 Python 3.11+"
     exit 1
 fi
 info "使用 Python: $( "$PYTHON" --version 2>&1 )"
+
+if ! "$PYTHON" -c 'import sys; raise SystemExit(sys.version_info < (3, 11))'; then
+    error "Python 版本过低，需要 Python 3.11+"
+    exit 1
+fi
 
 # ---- 2. 检查 / 创建虚拟环境 ----
 if [ ! -d "$VENV_DIR" ]; then

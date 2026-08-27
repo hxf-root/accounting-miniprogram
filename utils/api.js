@@ -1,6 +1,6 @@
 // 抱布记 API 客户端
 // 生产环境走 nginx 反代路径（端口 8089 仅限内网直连）
-const BASE_URL = 'http://81.70.209.199:8080/api/baobaoji'
+const BASE_URL = 'https://xuefei.art/api/baobaoji'
 
 // Token 管理
 const TOKEN_KEY = 'baobaoji_token'
@@ -96,6 +96,7 @@ module.exports = {
   // 数据导入导出
   exportData: () => request('GET', '/api/data/export'),
   importData: (data) => request('POST', '/api/data/import', data),
+  clearData: () => request('DELETE', '/api/data'),
 
   // Token 管理
   getToken,

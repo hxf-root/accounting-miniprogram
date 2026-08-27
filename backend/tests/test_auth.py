@@ -1,6 +1,12 @@
 """认证接口测试"""
 
 
+def test_protected_endpoint_requires_bearer_token(client):
+    resp = client.get("/api/bills")
+    assert resp.status_code == 401
+    assert resp.headers["www-authenticate"] == "Bearer"
+
+
 def test_register(client):
     resp = client.post("/api/auth/register", json={
         "username": "newuser",

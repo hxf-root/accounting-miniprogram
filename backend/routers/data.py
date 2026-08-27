@@ -19,3 +19,9 @@ def export_data(db: Session = Depends(get_db), user: dict = Depends(get_current_
 @router.post("/import")
 def import_data(data: ImportData, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     return data_service.import_data(db, user["user_id"], data)
+
+
+@router.delete("")
+def clear_data(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    data_service.clear_data(db, user["user_id"])
+    return {"ok": True}
