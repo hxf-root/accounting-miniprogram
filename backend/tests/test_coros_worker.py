@@ -199,3 +199,44 @@ def test_explicit_recovery_commits_each_window_and_resumes_after_failure(db_sess
         assert (args['startDate'], args['endDate']) == ('20260930', '20261027')
     assert result['inserted'] == 1
     assert db_session.query(SyncState).one().last_success_date == '2026-10-27'
+
+
+def test_command_line_sync_end_to_end_without_private_log_output(db_session, config):
+    """Exercise the scheduler entry point against an isolated database and fake provider."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from datetime import datetime, timezone
+    from models import Memory, SyncState
+
+    helper, state, token = config
+    token.write_text('test-secret-never-log')
+    token.chmod(0o600)
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.commit()
+    now = datetime.now(timezone.utc)
+    stamp = int(now.timestamp())
+    record = (f'Sport Records (1 records)\n1. Synthetic Run — {now.date()}\n'
+              f'   Time Window: startTimestamp={stamp} | endTimestamp={stamp + 60}\n'
+              '   LabelId: 777 | SportType: 100\n')
+    result = {'content': [{'type': 'text', 'text': json.dumps(record)}], 'isError': False}
+    helper.write_text('import sys\nprint(' + repr(json.dumps(result)) + ')\nprint("test-secret-never-log", file=sys.stderr)\n')
+    env = dict(os.environ, DATABASE_URL=str(db_session.get_bind().url))
+    worker = Path(__file__).resolve().parents[1] / 'coros_worker.py'
+    cmd = [sys.executable, str(worker), '--user-id', '1', '--helper', str(helper), '--state-dir', str(state)]
+    first = subprocess.run(cmd, env=env, text=True, capture_output=True, timeout=20)
+    assert first.returncode == 0, first.stderr
+    assert json.loads(first.stdout)['inserted'] == 1
+    assert 'test-secret-never-log' not in first.stdout + first.stderr
+    second = subprocess.run(cmd, env=env, text=True, capture_output=True, timeout=20)
+    assert second.returncode == 0, second.stderr
+    assert json.loads(second.stdout)['inserted'] == 0
+    db_session.expire_all()
+    assert db_session.query(Memory).count() == 1
+    assert db_session.query(SyncState).count() == 1
+    helper.write_text('import sys\nprint("test-secret-never-log", file=sys.stderr)\nsys.exit(1)\n')
+    failed = subprocess.run(cmd, env=env, text=True, capture_output=True, timeout=20)
+    assert failed.returncode == 1
+    assert 'provider_or_authorization_error' in failed.stderr
+    assert 'test-secret-never-log' not in failed.stdout + failed.stderr
