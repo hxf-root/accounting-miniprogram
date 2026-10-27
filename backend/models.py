@@ -35,6 +35,15 @@ class MemorySuppression(Base):
     source_id = Column(String(200), nullable=False)
 
 
+class SyncState(Base):
+    __tablename__ = "sync_states"
+    __table_args__ = (UniqueConstraint("user_id", "source", name="uq_sync_state_user_source"),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    source = Column(String(32), nullable=False)
+    last_success_date = Column(String(10), nullable=False)
+
+
 class Bill(Base):
     __tablename__ = "bills"
     __table_args__ = (

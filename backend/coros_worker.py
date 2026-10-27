@@ -10,7 +10,7 @@ import os
 import stat
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -27,9 +27,9 @@ def secure_path(path: Path, *, directory: bool):
         raise ValueError('credential token is invalid')
 
 
-def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100):
+def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100, today=None):
     from integrations.coros_sync import import_sport_records
-    from models import User
+    from models import User, SyncState
     if not 1 <= days <= 30 or not 2 <= limit <= 100:
         raise ValueError('days must be 1–30 and limit 2–100')
     if not helper.is_absolute() or not helper.is_file():
@@ -46,8 +46,16 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
     try:
         with os.fdopen(fd, 'a+') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            today = datetime.now(ZoneInfo('Asia/Shanghai')).date()
+            today = today or datetime.now(ZoneInfo('Asia/Shanghai')).date()
+            state = db.query(SyncState).filter_by(user_id=user_id, source='coros').first()
             start = today - timedelta(days=days - 1)
+            if state:
+                last_success = date.fromisoformat(state.last_success_date)
+                if last_success > today:
+                    raise RuntimeError('sync checkpoint is in the future')
+                start = min(start, last_success)
+            if (today - start).days >= 30:
+                raise RuntimeError('sync gap exceeds 30 days; manual recovery is required')
             args = {'startDate': start.strftime('%Y%m%d'), 'endDate': today.strftime('%Y%m%d'), 'limit': limit}
             cmd = [sys.executable, str(helper), '--issuer', 'https://mcpcn.coros.com',
                    '--cache-path', str(state_dir / 'token.json'),
@@ -65,7 +73,19 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
                 response = json.loads(result.stdout)
             except ValueError as exc:
                 raise RuntimeError('COROS returned invalid JSON') from exc
-            return import_sport_records(db, user_id, response, requested_limit=limit)
+            try:
+                summary = import_sport_records(db, user_id, response, requested_limit=limit, commit=False,
+                                               start_date=start, end_date=today)
+                if state is None:
+                    state = SyncState(user_id=user_id, source='coros', last_success_date=today.isoformat())
+                    db.add(state)
+                else:
+                    state.last_success_date = today.isoformat()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+            return summary
     except BlockingIOError as exc:
         raise RuntimeError('another sync is already running') from exc
 

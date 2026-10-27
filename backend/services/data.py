@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-from models import Bill, FitnessRecord, Settings, Category, Memory, MemorySuppression
+from models import Bill, FitnessRecord, Settings, Category, Memory, MemorySuppression, SyncState
 from schemas import ImportData
 
 
@@ -82,6 +82,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             db.add(MemorySuppression(user_id=user_id, source=entry.source, source_id=entry.source_id))
 
     if data.memories is not None:
+        db.query(SyncState).filter_by(user_id=user_id).delete()
         db.query(Memory).filter(Memory.user_id == user_id).delete()
         for m in data.memories:
             if data.memory_suppressions is None and m.source_id and db.query(MemorySuppression).filter_by(
@@ -111,6 +112,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
 
 
 def clear_data(db: Session, user_id: int) -> bool:
+    db.query(SyncState).filter_by(user_id=user_id).delete()
     db.query(MemorySuppression).filter_by(user_id=user_id).delete()
     db.query(Memory).filter(Memory.user_id == user_id).delete()
     db.query(Bill).filter(Bill.user_id == user_id).delete()
