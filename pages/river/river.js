@@ -18,7 +18,7 @@ function toMemory(item) {
   const dateText = `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`
   const fromCoros = item.source === 'coros'
   return {
-    id: String(item.id), date: dateText,
+    id: String(item.id), occurredAt: item.occurred_at, date: dateText,
     category: fromCoros ? '运动记录' : '生活记录',
     title: fromCoros ? '一次运动' : '一条记录',
     text: item.text || '这一天留下了一条记录。',
@@ -43,7 +43,7 @@ Page({
     hasMore: false,
     loadingMore: false,
     loadMoreError: '',
-    nextOffset: 0,
+    nextCursor: null,
     status: '正在寻找你的回忆 · 以下内容为示例',
   },
 
@@ -64,30 +64,32 @@ Page({
         return
       }
       const memories = items.map(toMemory)
-      this.setMemories(memories, 'live', '你的私人回忆', items.length === 50, items.length)
+      this.setMemories(memories, 'live', '你的私人回忆', items.length === 50)
     }).catch(() => {
       this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例')
     })
   },
 
-  setMemories(memories, mode, status, hasMore = false, nextOffset = 0) {
-    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, hasMore, nextOffset, loadingMore: false, loadMoreError: '', countLabel: `${mode === 'demo' ? '示例' : '已加载'} ${memories.length} 条` })
+  setMemories(memories, mode, status, hasMore = false) {
+    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, hasMore, nextCursor: mode === 'live' ? memories[memories.length - 1] : null, loadingMore: false, loadMoreError: '', countLabel: `${mode === 'demo' ? '示例' : '已加载'} ${memories.length} 条` })
   },
 
   loadMore() {
     if (this.data.mode !== 'live' || !this.data.hasMore || this.data.loadingMore) return Promise.resolve()
-    const offset = this.data.nextOffset
+    const cursor = this.data.nextCursor
     this.setData({ loadingMore: true, loadMoreError: '' })
-    return api.getMemories(offset).then(items => {
+    return api.getMemories(cursor).then(items => {
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       const incoming = items.map(toMemory)
       const seen = new Set(this.data.memories.map(item => item.id))
-      const memories = this.data.memories.concat(incoming.filter(item => {
+      const older = incoming.filter(item => {
         if (seen.has(item.id)) return false
         seen.add(item.id)
         return true
-      }))
-      this.setData({ memories, nextOffset: offset + items.length, hasMore: items.length === 50,
+      })
+      if (incoming.length && !older.length) throw new Error('分页接口未正确返回较早记录')
+      const memories = this.data.memories.concat(older)
+      this.setData({ memories, nextCursor: incoming.length ? incoming[incoming.length - 1] : cursor, hasMore: items.length === 50,
         loadingMore: false, countLabel: `已加载 ${memories.length} 条` })
     }).catch(() => this.setData({ loadingMore: false, loadMoreError: '加载失败，请重试' }))
   },

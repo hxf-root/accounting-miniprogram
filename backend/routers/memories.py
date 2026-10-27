@@ -1,4 +1,7 @@
 """私人回忆基础接口；自动采集和媒体文件另行实现。"""
+from datetime import datetime, timezone
+
+from sqlalchemy import and_, or_
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
@@ -41,9 +44,16 @@ def create_memory(data: MemoryCreate, db: Session = Depends(get_db), user: dict 
 
 @router.get("")
 def list_memories(include_hidden: bool = False, limit: int = Query(50, ge=1, le=100),
-                  offset: int = Query(0, ge=0), db: Session = Depends(get_db),
+                  offset: int = Query(0, ge=0), before: datetime | None = None,
+                  before_id: int | None = Query(None, ge=1), db: Session = Depends(get_db),
                   user: dict = Depends(get_current_user)):
+    if (before is None) != (before_id is None) or (before is not None and (before.utcoffset() is None or offset)):
+        raise HTTPException(status_code=422, detail="分页游标需要带时区的时间与记录 ID，且不能与 offset 同用")
     query = db.query(Memory).filter(Memory.user_id == user["user_id"])
+    if before is not None:
+        stamp = before.astimezone(timezone.utc).isoformat(timespec="microseconds")
+        query = query.filter(or_(Memory.occurred_at < stamp,
+                                 and_(Memory.occurred_at == stamp, Memory.id < before_id)))
     if not include_hidden:
         query = query.filter(Memory.hidden.is_(False))
     items = query.order_by(Memory.occurred_at.desc(), Memory.id.desc()).offset(offset).limit(limit).all()
