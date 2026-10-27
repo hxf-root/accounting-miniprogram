@@ -36,3 +36,7 @@ page { background: #0b1d2b; color: #eff7f3; }
 .timeline-dot { color: #b3dec9; font-size: 16rpx; }
 .timeline-date { font-size: 19rpx; }.timeline-name { font-size: 23rpx; }
 .demo-note { display: block; margin-top: 32rpx; color: #85aaa1; font-size: 21rpx; line-height: 1.6; }
+
+.load-more { margin: 24rpx 0 0; background: rgba(180, 231, 207, .12); color: #d2e4df; border-radius: 40rpx; font-size: 24rpx; }
+.load-more::after { border: 0; }
+.load-error { display: block; color: #f1c5ae; font-size: 22rpx; margin-top: 12rpx; }

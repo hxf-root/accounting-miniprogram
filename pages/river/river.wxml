@@ -35,6 +35,8 @@
         </button>
       </view>
     </scroll-view>
-    <text class="demo-note">{{mode === 'demo' ? '以下内容为虚构示例，不会保存或上传。' : '这里最多展示最近 50 条私人回忆。'}}</text>
+    <button wx:if="{{hasMore}}" class="load-more" bindtap="loadMore" disabled="{{loadingMore}}">{{loadingMore ? '正在寻找…' : '加载更早的回忆'}}</button>
+    <text wx:if="{{loadMoreError}}" class="load-error">{{loadMoreError}}</text>
+    <text class="demo-note">{{mode === 'demo' ? '以下内容为虚构示例，不会保存或上传。' : '回忆按时间排列，可继续加载更早的记录。'}}</text>
   </view>
 </view>

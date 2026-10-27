@@ -85,7 +85,7 @@ module.exports = {
   deleteFitnessRecord: (id) => request('DELETE', '/api/fitness/records/' + id),
 
   // 时间长河（最多返回最近 50 条）
-  getMemories: () => request('GET', '/api/memories?limit=50'),
+  getMemories: (offset = 0) => request('GET', '/api/memories?limit=50&offset=' + offset),
 
   // 统计
   getMonthlyStats: (year, month) => request('GET', `/api/stats/monthly?year=${year}&month=${month}`),

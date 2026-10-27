@@ -40,6 +40,10 @@ Page({
     activeIndex: 0,
     mode: 'demo',
     countLabel: `示例 ${EXAMPLES.length} 条`,
+    hasMore: false,
+    loadingMore: false,
+    loadMoreError: '',
+    nextOffset: 0,
     status: '正在寻找你的回忆 · 以下内容为示例',
   },
 
@@ -60,14 +64,32 @@ Page({
         return
       }
       const memories = items.map(toMemory)
-      this.setMemories(memories, 'live', '你的私人回忆')
+      this.setMemories(memories, 'live', '你的私人回忆', items.length === 50, items.length)
     }).catch(() => {
       this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例')
     })
   },
 
-  setMemories(memories, mode, status) {
-    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, countLabel: `${mode === 'demo' ? '示例' : '最近'} ${memories.length} 条` })
+  setMemories(memories, mode, status, hasMore = false, nextOffset = 0) {
+    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, hasMore, nextOffset, loadingMore: false, loadMoreError: '', countLabel: `${mode === 'demo' ? '示例' : '已加载'} ${memories.length} 条` })
+  },
+
+  loadMore() {
+    if (this.data.mode !== 'live' || !this.data.hasMore || this.data.loadingMore) return Promise.resolve()
+    const offset = this.data.nextOffset
+    this.setData({ loadingMore: true, loadMoreError: '' })
+    return api.getMemories(offset).then(items => {
+      if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
+      const incoming = items.map(toMemory)
+      const seen = new Set(this.data.memories.map(item => item.id))
+      const memories = this.data.memories.concat(incoming.filter(item => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      }))
+      this.setData({ memories, nextOffset: offset + items.length, hasMore: items.length === 50,
+        loadingMore: false, countLabel: `已加载 ${memories.length} 条` })
+    }).catch(() => this.setData({ loadingMore: false, loadMoreError: '加载失败，请重试' }))
   },
 
   selectMemory(event) {
