@@ -173,3 +173,29 @@ def test_failure_codes_never_include_exception_text():
     assert failure_code(RuntimeError('sync gap exceeds 30 days; manual recovery is required')) == 'recovery_required'
     assert failure_code(CorosResponseError('private data')) == 'invalid_or_incomplete_response'
     assert failure_code(RuntimeError('secret-token-or-private-data')) == 'internal_error'
+
+
+def test_explicit_recovery_commits_each_window_and_resumes_after_failure(db_session, config):
+    from models import Memory, SyncState
+    helper, state, _ = config
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SyncState(user_id=1, source='coros', last_success_date='2026-09-01'))
+    db_session.commit()
+    empty = {'content': [{'type': 'text', 'text': json.dumps('Sport Records (0 records)\n')}], 'isError': False}
+    ok = SimpleNamespace(returncode=0, stdout=json.dumps(empty))
+    failed = SimpleNamespace(returncode=1, stdout='private error')
+    with patch('coros_worker.subprocess.run', side_effect=[ok, failed]) as run:
+        with pytest.raises(RuntimeError):
+            run_sync(db_session, 1, helper, state, today=date(2026, 10, 27), recover=True)
+        ranges = [json.loads(call.args[0][-1]) for call in run.call_args_list]
+    assert [(r['startDate'], r['endDate']) for r in ranges] == [('20260901', '20260930'), ('20261001', '20261027')]
+    db_session.expire_all()
+    assert db_session.query(SyncState).one().last_success_date == '2026-09-30'
+    assert db_session.query(Memory).count() == 0
+    body = {'content': [{'type': 'text', 'text': json.dumps(SAMPLE)}], 'isError': False}
+    with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(body))) as run:
+        result = run_sync(db_session, 1, helper, state, today=date(2026, 10, 27), recover=True)
+        args = json.loads(run.call_args.args[0][-1])
+        assert (args['startDate'], args['endDate']) == ('20260930', '20261027')
+    assert result['inserted'] == 1
+    assert db_session.query(SyncState).one().last_success_date == '2026-10-27'
