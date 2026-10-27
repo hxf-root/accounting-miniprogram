@@ -13,6 +13,15 @@
     </view>
   </view>
 
+  <view class="river-entry" bindtap="goRiver" role="button" aria-label="打开时间长河示例">
+    <view class="river-entry-text">
+      <text class="river-entry-kicker">TIME RIVER · 体验版</text>
+      <text class="river-entry-title">走进时间长河</text>
+      <text class="river-entry-desc">在记忆的海洋里，偶遇一个瞬间</text>
+    </view>
+    <text class="river-entry-arrow">↗</text>
+  </view>
+
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading">
     <text class="loading-text">加载中...</text>

@@ -103,6 +103,10 @@ Page({
     this.setData({ todayDate: `${y}年${m}月${d}日 ${wd}` })
   },
 
+  goRiver() {
+    wx.navigateTo({ url: '/pages/river/river' })
+  },
+
   goAccounting() {
     wx.switchTab({ url: '/pages/index/index' })
   },

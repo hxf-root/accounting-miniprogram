@@ -1,0 +1,38 @@
+page { background: #0b1d2b; color: #eff7f3; }
+.river-page { position: relative; overflow: hidden; min-height: 100vh; background: linear-gradient(165deg, #0b1d2b 0%, #12343c 55%, #0b252f 100%); }
+.river-content { position: relative; z-index: 1; padding: 30rpx 38rpx 80rpx; }
+.sky-glow { position: absolute; border-radius: 50%; pointer-events: none; }
+.sky-glow-one { width: 430rpx; height: 430rpx; top: 80rpx; right: -210rpx; background: rgba(98, 175, 160, .08); }
+.sky-glow-two { width: 360rpx; height: 360rpx; top: 700rpx; left: -220rpx; background: rgba(137, 189, 169, .06); }
+.intro { display: flex; flex-direction: column; align-items: flex-start; gap: 12rpx; }
+.eyebrow { color: #8fbeb5; font-size: 19rpx; letter-spacing: 5rpx; }
+.headline { font-size: 58rpx; font-weight: 700; letter-spacing: 5rpx; }
+.intro-text { font-size: 25rpx; color: #bacfcb; line-height: 1.7; }
+.demo-badge { margin-top: 6rpx; padding: 7rpx 15rpx; border: 1rpx solid rgba(166, 216, 202, .32); border-radius: 99rpx; font-size: 19rpx; color: #a8cfc4; }
+.ocean { position: relative; height: 450rpx; margin: 24rpx 0 10rpx; }
+.orbit { position: absolute; left: 50%; top: 43%; transform: translate(-50%, -50%); border: 1rpx solid rgba(156, 216, 202, .19); border-radius: 50%; }
+.orbit-outer { width: 400rpx; height: 300rpx; transform: translate(-50%, -50%) rotate(-14deg); }
+.orbit-inner { width: 245rpx; height: 245rpx; border-color: rgba(156, 216, 202, .12); }
+.ocean-core { position: absolute; left: 50%; top: 43%; transform: translate(-50%, -50%); width: 150rpx; height: 150rpx; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4rpx; background: rgba(126, 200, 181, .10); border: 1rpx solid rgba(166, 218, 205, .23); font-size: 25rpx; letter-spacing: 5rpx; }
+.core-small { font-size: 17rpx; letter-spacing: 2rpx; color: #a8c9c1; }
+.memory-star { position: absolute; padding: 0; width: 76rpx; height: 76rpx; line-height: 76rpx; border-radius: 50%; color: #b8e1d2; background: rgba(155, 218, 196, .12); border: 1rpx solid rgba(172, 225, 208, .25); }
+.memory-star::after, .discover::after, .timeline-item::after { border: 0; }
+.star-active { background: #acd9c8; color: #16383d; box-shadow: 0 0 30rpx rgba(154, 227, 202, .45); }
+.star-0 { left: 14%; top: 13%; } .star-1 { right: 12%; top: 25%; } .star-2 { left: 19%; bottom: 20%; } .star-3 { right: 20%; bottom: 13%; }
+.star-symbol { font-size: 34rpx; }
+.ocean-hint { position: absolute; bottom: 0; width: 100%; text-align: center; color: #93b8b1; font-size: 21rpx; }
+.memory-card { padding: 30rpx; border-radius: 24rpx; background: rgba(226, 247, 238, .08); border: 1rpx solid rgba(202, 238, 222, .18); }
+.card-meta, .card-footer { display: flex; justify-content: space-between; color: #9bc9bc; font-size: 20rpx; letter-spacing: 2rpx; }
+.card-title { display: block; margin: 24rpx 0 15rpx; font-size: 34rpx; font-weight: 600; }
+.card-text { display: block; font-size: 26rpx; line-height: 1.8; color: #d2e4df; }
+.card-footer { margin-top: 30rpx; padding-top: 20rpx; border-top: 1rpx solid rgba(202, 238, 222, .14); letter-spacing: 0; }
+.discover { margin: 22rpx 0 38rpx; border-radius: 50rpx; background: #b7dfcf; color: #123a38; font-size: 25rpx; font-weight: 600; }
+.timeline-heading { display: flex; justify-content: space-between; align-items: center; font-size: 27rpx; font-weight: 600; }
+.timeline-caption { color: #8db4aa; font-size: 21rpx; font-weight: 400; }
+.timeline { white-space: nowrap; margin-top: 22rpx; width: 100%; }
+.timeline-row { display: flex; gap: 12rpx; }
+.timeline-item { flex: 0 0 190rpx; margin: 0; padding: 16rpx; display: flex; flex-direction: column; align-items: flex-start; gap: 7rpx; line-height: 1.35; text-align: left; background: rgba(221, 244, 234, .05); border: 1rpx solid rgba(202, 238, 222, .12); border-radius: 18rpx; color: #a9c6be; }
+.timeline-active { background: rgba(180, 231, 207, .15); border-color: rgba(180, 231, 207, .5); color: #e2f3e9; }
+.timeline-dot { color: #b3dec9; font-size: 16rpx; }
+.timeline-date { font-size: 19rpx; }.timeline-name { font-size: 23rpx; }
+.demo-note { display: block; margin-top: 32rpx; color: #85aaa1; font-size: 21rpx; line-height: 1.6; }

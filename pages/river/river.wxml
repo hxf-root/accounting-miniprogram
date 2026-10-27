@@ -1,0 +1,40 @@
+<view class="river-page">
+  <view class="sky-glow sky-glow-one"></view>
+  <view class="sky-glow sky-glow-two"></view>
+  <view class="river-content">
+    <view class="intro">
+      <text class="eyebrow">A WORLD OF YOUR DAYS</text>
+      <text class="headline">时间长河</text>
+      <text class="intro-text">生活里那些微小的瞬间，也值得再次遇见。</text>
+      <text class="demo-badge">体验示例 · 以下内容均为虚构</text>
+    </view>
+
+    <view class="ocean" aria-label="选择一个示例时刻">
+      <view class="orbit orbit-outer"></view>
+      <view class="orbit orbit-inner"></view>
+      <view class="ocean-core"><text>时光</text><text class="core-small">在此流动</text></view>
+      <button wx:for="{{memories}}" wx:key="id" class="memory-star star-{{index}} {{activeIndex === index ? 'star-active' : ''}}" data-index="{{index}}" bindtap="selectMemory" aria-label="{{item.date}} {{item.title}}">
+        <text class="star-symbol">{{item.symbol}}</text>
+      </button>
+      <text class="ocean-hint">轻触光点，走进一个瞬间</text>
+    </view>
+
+    <view class="memory-card">
+      <view class="card-meta"><text>{{selected.date}}</text><text>{{selected.category}}</text></view>
+      <text class="card-title">{{selected.title}}</text>
+      <text class="card-text">{{selected.text}}</text>
+      <view class="card-footer"><text>{{selected.note}}</text><text>✦</text></view>
+    </view>
+
+    <button class="discover" bindtap="discover">遇见另一个瞬间 <text>↗</text></button>
+    <view class="timeline-heading"><text>沿着时间走</text><text class="timeline-caption">{{memories.length}} 个示例</text></view>
+    <scroll-view class="timeline" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="timeline-row">
+        <button wx:for="{{memories}}" wx:key="id" class="timeline-item {{activeIndex === index ? 'timeline-active' : ''}}" data-index="{{index}}" bindtap="selectMemory">
+          <text class="timeline-dot">●</text><text class="timeline-date">{{item.date}}</text><text class="timeline-name">{{item.category}}</text>
+        </button>
+      </view>
+    </scroll-view>
+    <text class="demo-note">这里展示的是示例，不会保存或上传。你的回忆还在准备中。</text>
+  </view>
+</view>

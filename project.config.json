@@ -1,7 +1,68 @@
 {
   "description": "抱布记 - 个人记账小程序",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "backend"
+      },
+      {
+        "type": "folder",
+        "value": "deploy"
+      },
+      {
+        "type": "folder",
+        "value": "designs"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": ".github"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": "CLAUDE.md"
+      },
+      {
+        "type": "file",
+        "value": "Makefile"
+      },
+      {
+        "type": "file",
+        "value": "setup.ps1"
+      },
+      {
+        "type": "file",
+        "value": "start.sh"
+      },
+      {
+        "type": "file",
+        "value": "motivation.md"
+      },
+      {
+        "type": "file",
+        "value": ".python-version"
+      },
+      {
+        "type": "file",
+        "value": ".gitignore"
+      },
+      {
+        "type": "file",
+        "value": "project.private.config.json"
+      }
+    ],
     "include": []
   },
   "setting": {
