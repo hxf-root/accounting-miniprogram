@@ -1,27 +1,11 @@
 const api = require('../../utils/api.js')
-const { formatDate, calcStats, calcBudgetPercent } = require('../../utils/helpers.js')
+const { formatDate } = require('../../utils/helpers.js')
 
 Page({
   data: {
     statusBarHeight: 0,
     userName: '',
-    loading: true,
-    refreshing: false,
-    // 统计
-    stats: {
-      totalCount: 0,
-      totalExpense: '0.00',
-      totalIncome: '0.00',
-      totalExpenseNum: 0,
-      totalIncomeNum: 0,
-    },
-    // 预算
-    budget: 0,
-    budgetEditValue: '',
-    budgetPercent: 0,
-    // 弹窗
-    showClearModal: false,
-    showBudgetModal: false,
+
   },
 
   onLoad() {
@@ -30,106 +14,8 @@ Page({
   },
 
   onShow() {
-    this.loadPageData()
-  },
-
-  onRefresh() {
-    this.setData({ refreshing: true })
-    this.loadPageData()
-  },
-
-  loadPageData() {
-    // 用户信息
     const user = api.getUser()
     this.setData({ userName: user.username || '用户' })
-
-    // 并行加载设置 + 全部账单
-    Promise.all([
-      api.getSettings(),
-      api.getBills({ page: 1, page_size: 999 }),
-    ])
-      .then(([settings, billsData]) => {
-        const budget = settings.monthly_budget || 0
-        const bills = Array.isArray(billsData) ? billsData : (billsData.items || billsData.records || [])
-        const stats = this.calcStats(bills)
-
-        this.setData({
-          budget,
-          budgetEditValue: budget > 0 ? String(budget) : '',
-          stats,
-          budgetPercent: this.calcBudgetPercent(budget, stats.totalExpenseNum),
-          loading: false,
-          refreshing: false,
-        })
-      })
-      .catch(err => {
-        wx.showToast({ title: '数据加载失败', icon: 'none' })
-        this.setData({ loading: false, refreshing: false })
-      })
-  },
-
-  /**
-   * 统计所有账单
-   */
-  calcStats(bills) {
-    return calcStats(bills)
-  },
-
-  /**
-   * 计算预算百分比
-   */
-  calcBudgetPercent(budget, expense) {
-    return calcBudgetPercent(budget, expense)
-  },
-
-  // ========== 预算相关 ==========
-
-  onBudgetInput(e) {
-    // 实时输入不保存，只记录值
-    this.setData({ budgetEditValue: e.detail.value })
-  },
-
-  onBudgetBlur(e) {
-    // 失焦时保存预算
-    const val = parseFloat(e.detail.value) || 0
-    this.saveBudget(val)
-  },
-
-  onBudgetEditInput(e) {
-    this.setData({ budgetEditValue: e.detail.value })
-  },
-
-  showBudgetModal() {
-    this.setData({
-      showBudgetModal: true,
-      budgetEditValue: this.data.budget > 0 ? String(this.data.budget) : '',
-    })
-  },
-
-  hideBudgetModal() {
-    this.setData({ showBudgetModal: false })
-  },
-
-  confirmBudget() {
-    const val = parseFloat(this.data.budgetEditValue) || 0
-    this.saveBudget(val)
-    this.hideBudgetModal()
-  },
-
-  saveBudget(val) {
-    const budget = Math.max(0, val)
-    api.updateSettings({ monthly_budget: budget })
-      .then(() => {
-        this.setData({
-          budget,
-          budgetEditValue: budget > 0 ? String(budget) : '',
-          budgetPercent: this.calcBudgetPercent(budget, this.data.stats.totalExpenseNum),
-        })
-        wx.showToast({ title: budget > 0 ? '预算已设置' : '预算已取消', icon: 'success' })
-      })
-      .catch(() => {
-        wx.showToast({ title: '保存失败', icon: 'none' })
-      })
   },
 
   // ========== 数据导出 ==========
@@ -174,37 +60,6 @@ Page({
       .catch(() => {
         wx.hideLoading()
         wx.showToast({ title: '导出失败', icon: 'none' })
-      })
-  },
-
-  // ========== 导入跳转 ==========
-
-  goImport() {
-    wx.navigateTo({ url: '/pages/import-bill/import-bill' })
-  },
-
-  // ========== 清空数据 ==========
-
-  onClearData() {
-    this.setData({ showClearModal: true })
-  },
-
-  hideClearModal() {
-    this.setData({ showClearModal: false })
-  },
-
-  confirmClearData() {
-    this.hideClearModal()
-    wx.showLoading({ title: '清空中...', mask: true })
-    api.clearData()
-      .then(() => {
-        wx.hideLoading()
-        wx.showToast({ title: '已清空所有数据', icon: 'success' })
-        this.loadPageData()
-      })
-      .catch(() => {
-        wx.hideLoading()
-        wx.showToast({ title: '清空失败', icon: 'none' })
       })
   },
 

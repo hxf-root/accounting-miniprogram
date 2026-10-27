@@ -1,5 +1,4 @@
 const api = require('../../utils/api.js')
-const { formatAmount } = require('../../utils/helpers.js')
 
 Page({
   data: {
@@ -7,20 +6,7 @@ Page({
     userName: '',
     todayDate: '',
     greeting: '',
-    loading: true,
-    refreshing: false,
-    monthly: {
-      expense: 0,
-      income: 0,
-      count: 0,
-      categories: [],
-    },
-    today: {
-      expense: 0,
-      income: 0,
-      fitness_minutes: 0,
-      fitness_calories: 0,
-    },
+
   },
 
   onLoad() {
@@ -34,50 +20,11 @@ Page({
     this.loadPageData()
   },
 
-  onRefresh() {
-    this.setData({ refreshing: true })
-    this.loadPageData()
-  },
-
   loadPageData() {
     const user = api.getUser()
-    this.setData({
-      userName: user.username || '用户',
-    })
-
+    this.setData({ userName: user.username || '用户' })
     this.setGreeting()
     this.setTodayDate()
-
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = now.getMonth() + 1
-
-    Promise.all([
-      api.getMonthlyStats(year, month),
-      api.getTodayStats(),
-    ])
-      .then(([monthlyData, todayData]) => {
-        this.setData({
-          monthly: {
-            expense: formatAmount(monthlyData.expense || 0),
-            income: formatAmount(monthlyData.income || 0),
-            count: monthlyData.bill_count || 0,
-            categories: (monthlyData.category_stats || []).slice(0, 4),
-          },
-          today: {
-            expense: formatAmount(todayData.expense || 0),
-            income: formatAmount(todayData.income || 0),
-            fitness_minutes: todayData.fitness_minutes || 0,
-            fitness_calories: todayData.fitness_calories || 0,
-          },
-          loading: false,
-          refreshing: false,
-        })
-      })
-      .catch(err => {
-        wx.showToast({ title: '数据加载失败', icon: 'none' })
-        this.setData({ loading: false, refreshing: false })
-      })
   },
 
   setGreeting() {
@@ -107,11 +54,4 @@ Page({
     wx.navigateTo({ url: '/pages/river/river' })
   },
 
-  goAccounting() {
-    wx.switchTab({ url: '/pages/index/index' })
-  },
-
-  goFitness() {
-    wx.switchTab({ url: '/pages/fitness/index' })
-  },
 })

@@ -2,17 +2,7 @@
   "pages": [
     "pages/login/login",
     "pages/main/main",
-    "pages/index/index",
-    "pages/record/record",
-    "pages/history/history",
     "pages/settings/settings",
-    "pages/category/category",
-    "pages/import-bill/import-bill",
-    "pages/fitness/index",
-    "pages/fitness/record",
-    "pages/fitness/analytics",
-    "pages/fitness/history",
-    "pages/fitness/settings",
     "pages/river/river"
   ],
   "window": {
@@ -31,21 +21,9 @@
     "list": [
       {
         "pagePath": "pages/main/main",
-        "text": "模块",
+        "text": "首页",
         "iconPath": "images/home.png",
         "selectedIconPath": "images/home-active.png"
-      },
-      {
-        "pagePath": "pages/index/index",
-        "text": "记账",
-        "iconPath": "images/list.png",
-        "selectedIconPath": "images/list-active.png"
-      },
-      {
-        "pagePath": "pages/fitness/index",
-        "text": "健身",
-        "iconPath": "images/list.png",
-        "selectedIconPath": "images/list-active.png"
       },
       {
         "pagePath": "pages/settings/settings",
