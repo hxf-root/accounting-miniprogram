@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index, UniqueConstraint
 from database import Base
 
 
@@ -9,6 +9,21 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(128), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class Memory(Base):
+    __tablename__ = "memories"
+    __table_args__ = (
+        UniqueConstraint("user_id", "source", "source_id", name="uq_memory_source"),
+        Index("ix_memories_user_occurred", "user_id", "occurred_at"),
+    )
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    source = Column(String(32), nullable=False)
+    source_id = Column(String(200), nullable=True)
+    occurred_at = Column(String(32), nullable=False)  # UTC ISO 8601
+    text = Column(Text, nullable=False, default="")
+    hidden = Column(Boolean, nullable=False, default=False)
 
 
 class Bill(Base):

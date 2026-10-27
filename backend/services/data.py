@@ -2,16 +2,8 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
-
-from models import Bill, FitnessRecord, Settings, Category
-
-
-class ImportData(BaseModel):
-    categories: Optional[List[Dict[str, Any]]] = None
-    bills: List[Dict[str, Any]] = Field(default_factory=list)
-    fitness: List[Dict[str, Any]] = Field(default_factory=list)
-    settings: Dict[str, Any] = Field(default_factory=dict)
+from models import Bill, FitnessRecord, Settings, Category, Memory
+from schemas import ImportData
 
 
 def export_data(db: Session, user_id: int) -> Dict[str, Any]:
@@ -37,8 +29,12 @@ def export_data(db: Session, user_id: int) -> Dict[str, Any]:
         "fitness_daily_goal_minutes": settings_obj.fitness_daily_goal_minutes if settings_obj else 30,
         "fitness_daily_goal_calories": settings_obj.fitness_daily_goal_calories if settings_obj else 300,
     }
+    memories = [{"source": m.source, "source_id": m.source_id, "occurred_at": m.occurred_at,
+                 "text": m.text, "hidden": m.hidden}
+                for m in db.query(Memory).filter(Memory.user_id == user_id).all()]
     return {
         "version": 2,
+        "memories": memories,
         "categories": categories,
         "bills": bills,
         "fitness": fitness,
@@ -78,6 +74,13 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             "exercise_type", "duration_minutes", "calories", "date", "time", "note"
         )}))
 
+    if data.memories is not None:
+        db.query(Memory).filter(Memory.user_id == user_id).delete()
+        for m in data.memories:
+            db.add(Memory(user_id=user_id, source=m.source, source_id=m.source_id,
+                          occurred_at=m.occurred_at.isoformat(timespec="microseconds"),
+                          text=m.text, hidden=m.hidden))
+
     if data.settings:
         s = db.query(Settings).filter(Settings.user_id == user_id).first()
         if not s:
@@ -97,6 +100,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
 
 
 def clear_data(db: Session, user_id: int) -> bool:
+    db.query(Memory).filter(Memory.user_id == user_id).delete()
     db.query(Bill).filter(Bill.user_id == user_id).delete()
     db.query(FitnessRecord).filter(FitnessRecord.user_id == user_id).delete()
     db.query(Category).filter(Category.user_id == user_id).delete()

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional, List, Literal
+from datetime import datetime, timezone
 
 
 # --- Auth ---
@@ -137,9 +137,34 @@ class CategoryStats(BaseModel):
     color: str = "#5cb8a0"
 
 
+# --- Memory records ---
+class MemoryCreate(BaseModel):
+    source: Literal["manual", "coros"] = "manual"
+    source_id: str | None = Field(default=None, min_length=1, max_length=200)
+    occurred_at: datetime
+    text: str = Field(default="", max_length=10000)
+    hidden: bool = False
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_timezone(cls, value):
+        if value.utcoffset() is None:
+            raise ValueError("时间必须包含时区")
+        return value.astimezone(timezone.utc)
+
+    @model_validator(mode="after")
+    def valid_source(self):
+        if self.source_id is not None and not self.source_id.strip():
+            raise ValueError("来源 ID 不能为空")
+        if self.source == "coros" and not self.source_id:
+            raise ValueError("高驰记录需要来源 ID")
+        return self
+
+
 # --- Data Import/Export ---
 class ImportData(BaseModel):
     categories: Optional[List] = None
+    memories: Optional[List[MemoryCreate]] = None
     bills: List = []
     fitness: List = []
     settings: dict = {}

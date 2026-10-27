@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 load_dotenv()
 
 from database import engine, Base
-from routers import auth, bills, categories, fitness, stats, settings, data
+from routers import auth, bills, categories, fitness, stats, settings, data, memories
 
 START_TIME = time.time()
 
@@ -124,6 +124,7 @@ app.include_router(fitness.router)
 app.include_router(stats.router)
 app.include_router(settings.router)
 app.include_router(data.router)
+app.include_router(memories.router)
 
 
 # ---------------------------------------------------------------------------
