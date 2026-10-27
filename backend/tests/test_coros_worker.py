@@ -114,3 +114,62 @@ def test_out_of_range_result_never_advances_checkpoint(db_session, config):
             run_sync(db_session, 1, helper, state, today=date(2026, 10, 10))
     assert db_session.query(Memory).count() == 0
     assert db_session.query(SyncState).count() == 0
+
+
+def test_removed_token_is_restored_after_failed_refresh(db_session, config):
+    helper, state, token = config
+    token.write_text('original credential')
+    token.chmod(0o600)
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.commit()
+    def failed_refresh(*args, **kwargs):
+        token.unlink()
+        return SimpleNamespace(returncode=1, stdout='secret')
+    with patch('coros_worker.subprocess.run', side_effect=failed_refresh):
+        with pytest.raises(RuntimeError):
+            run_sync(db_session, 1, helper, state, today=date(2026, 10, 27))
+    assert token.read_text() == 'original credential'
+    assert token.stat().st_mode & 0o777 == 0o600
+    assert not list(state.glob('.token-recovery-*'))
+    from models import SyncState, Memory
+    assert db_session.query(SyncState).count() == 0
+    assert db_session.query(Memory).count() == 0
+
+
+def test_refreshed_token_is_never_overwritten_on_later_failure(db_session, config):
+    helper, state, token = config
+    token.write_text('old credential')
+    token.chmod(0o600)
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.commit()
+    def refreshed_but_query_failed(*args, **kwargs):
+        token.write_text('new credential')
+        return SimpleNamespace(returncode=1, stdout='secret')
+    with patch('coros_worker.subprocess.run', side_effect=refreshed_but_query_failed):
+        with pytest.raises(RuntimeError):
+            run_sync(db_session, 1, helper, state, today=date(2026, 10, 27))
+    assert token.read_text() == 'new credential'
+
+
+def test_helper_timeout_restores_removed_token(db_session, config):
+    import subprocess
+    helper, state, token = config
+    token.write_text('old credential')
+    token.chmod(0o600)
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.commit()
+    def timeout_after_delete(*args, **kwargs):
+        token.unlink()
+        raise subprocess.TimeoutExpired(cmd='helper', timeout=60)
+    with patch('coros_worker.subprocess.run', side_effect=timeout_after_delete):
+        with pytest.raises(RuntimeError, match='timed out'):
+            run_sync(db_session, 1, helper, state, today=date(2026, 10, 27))
+    assert token.read_text() == 'old credential'
+
+
+def test_failure_codes_never_include_exception_text():
+    from coros_worker import failure_code
+    from integrations.coros_records import CorosResponseError
+    assert failure_code(RuntimeError('sync gap exceeds 30 days; manual recovery is required')) == 'recovery_required'
+    assert failure_code(CorosResponseError('private data')) == 'invalid_or_incomplete_response'
+    assert failure_code(RuntimeError('secret-token-or-private-data')) == 'internal_error'

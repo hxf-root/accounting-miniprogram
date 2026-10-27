@@ -10,6 +10,7 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -25,6 +26,26 @@ def secure_path(path: Path, *, directory: bool):
         raise ValueError('credential directory is invalid')
     if not directory and not stat.S_ISREG(info.st_mode):
         raise ValueError('credential token is invalid')
+
+
+def restore_missing_token(path: Path, original: bytes):
+    """Restore the previous token only if a failed helper removed it.
+
+    Never overwrite a refreshed token. A restored token may still be expired or
+    revoked; it does not imply successful authorization.
+    """
+    fd, name = tempfile.mkstemp(prefix='.token-recovery-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as handle:
+            handle.write(original)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(name, path, follow_symlinks=False)
+        except FileExistsError:
+            pass
+    finally:
+        os.unlink(name)
 
 
 def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100, today=None):
@@ -46,6 +67,11 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
     try:
         with os.fdopen(fd, 'a+') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            token_path = state_dir / 'token.json'
+            secure_path(token_path, directory=False)
+            if token_path.stat().st_size > 65536:
+                raise ValueError('credential token is unexpectedly large')
+            original_token = token_path.read_bytes()
             today = today or datetime.now(ZoneInfo('Asia/Shanghai')).date()
             state = db.query(SyncState).filter_by(user_id=user_id, source='coros').first()
             start = today - timedelta(days=days - 1)
@@ -62,10 +88,19 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
                    '--pending-login-path', str(state_dir / 'pending-login.json'),
                    '--tool-catalog-path', str(state_dir / 'tool-catalog.json'),
                    'call-tool', '--tool', 'querySportRecords', '--arguments-json', json.dumps(args)]
+            token_removed = False
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
-            except subprocess.TimeoutExpired as exc:
-                raise RuntimeError('COROS request timed out') from exc
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+                except subprocess.TimeoutExpired as exc:
+                    raise RuntimeError('COROS request timed out') from exc
+            finally:
+                if not token_path.exists():
+                    token_removed = True
+                    restore_missing_token(token_path, original_token)
+            if token_removed:
+                raise RuntimeError('COROS credentials were removed; authorization must be checked')
+            secure_path(token_path, directory=False)
             if result.returncode:
                 # Do not log output, which may contain sensitive data or credentials.
                 raise RuntimeError('COROS request failed; check authorization and connectivity')
@@ -90,6 +125,30 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
         raise RuntimeError('another sync is already running') from exc
 
 
+def failure_code(exc):
+    """Return a non-sensitive code suitable for scheduler logs."""
+    from integrations.coros_records import CorosResponseError
+    if isinstance(exc, CorosResponseError):
+        return 'invalid_or_incomplete_response'
+    if isinstance(exc, FileNotFoundError):
+        return 'credential_or_helper_missing'
+    if isinstance(exc, PermissionError):
+        return 'credential_permission_denied'
+    if isinstance(exc, ValueError):
+        return 'invalid_configuration'
+    if isinstance(exc, RuntimeError):
+        return {
+            'COROS request timed out': 'request_timeout',
+            'COROS request failed; check authorization and connectivity': 'provider_or_authorization_error',
+            'COROS credentials were removed; authorization must be checked': 'credentials_need_review',
+            'COROS returned invalid JSON': 'invalid_or_incomplete_response',
+            'another sync is already running': 'sync_already_running',
+            'sync checkpoint is in the future': 'invalid_checkpoint',
+            'sync gap exceeds 30 days; manual recovery is required': 'recovery_required',
+        }.get(str(exc), 'internal_error')
+    return 'internal_error'
+
+
 def main():
     parser = argparse.ArgumentParser(description='Sync recent COROS activity to one local user')
     parser.add_argument('--user-id', type=int, required=True)
@@ -106,9 +165,9 @@ def main():
             result = run_sync(db, args.user_id, args.helper, args.state_dir, days=args.days, limit=args.limit)
         print(json.dumps(result))
         return 0
-    except Exception:
+    except Exception as exc:
         # No provider output, token, raw records or traceback in scheduler logs.
-        print('COROS sync failed; check configuration, authorization and query range', file=sys.stderr)
+        print(f'COROS sync failed: {failure_code(exc)}', file=sys.stderr)
         return 1
 
 
