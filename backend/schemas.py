@@ -161,13 +161,29 @@ class MemoryCreate(BaseModel):
         return self
 
 
+class MemorySuppressionInput(BaseModel):
+    source: Literal["coros"]
+    source_id: str = Field(min_length=1, max_length=200, pattern=r"\S")
+
+
 # --- Data Import/Export ---
 class ImportData(BaseModel):
     categories: Optional[List] = None
     memories: Optional[List[MemoryCreate]] = None
+    memory_suppressions: Optional[List[MemorySuppressionInput]] = None
     bills: List = []
     fitness: List = []
     settings: dict = {}
+
+    @model_validator(mode="after")
+    def unique_memory_sources(self):
+        if self.memory_suppressions is not None and self.memories is None:
+            raise ValueError("包含删除记录的备份必须包含回忆列表")
+        keys = [(m.source, m.source_id) for m in self.memories or [] if m.source_id]
+        suppressed = [(m.source, m.source_id) for m in self.memory_suppressions or []]
+        if len(keys) != len(set(keys)) or len(suppressed) != len(set(suppressed)) or set(keys) & set(suppressed):
+            raise ValueError("备份包含重复或冲突的回忆来源")
+        return self
 
 
 # --- Data ---

@@ -26,6 +26,15 @@ class Memory(Base):
     hidden = Column(Boolean, nullable=False, default=False)
 
 
+class MemorySuppression(Base):
+    __tablename__ = "memory_suppressions"
+    __table_args__ = (UniqueConstraint("user_id", "source", "source_id", name="uq_memory_suppression"),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    source = Column(String(32), nullable=False)
+    source_id = Column(String(200), nullable=False)
+
+
 class Bill(Base):
     __tablename__ = "bills"
     __table_args__ = (

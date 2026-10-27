@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import get_db
-from models import Memory
+from models import Memory, MemorySuppression
 from schemas import MemoryCreate
 
 router = APIRouter(prefix="/api/memories", tags=["memories"])
@@ -23,6 +23,10 @@ def serialize(item):
 
 @router.post("", status_code=201)
 def create_memory(data: MemoryCreate, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    if data.source_id and db.query(MemorySuppression).filter_by(
+        user_id=user["user_id"], source=data.source, source_id=data.source_id
+    ).first():
+        raise HTTPException(status_code=409, detail="记录此前已删除，无法重新导入")
     item = Memory(user_id=user["user_id"], source=data.source, source_id=data.source_id,
                   occurred_at=data.occurred_at.isoformat(timespec="microseconds"), text=data.text, hidden=data.hidden)
     db.add(item)
@@ -65,6 +69,9 @@ def set_visibility(memory_id: int, data: MemoryVisibility, db: Session = Depends
 @router.delete("/{memory_id}")
 def delete_memory(memory_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     item = get_owned(db, user["user_id"], memory_id)
+    if item.source != "manual" and item.source_id:
+        if not db.query(MemorySuppression).filter_by(user_id=user["user_id"], source=item.source, source_id=item.source_id).first():
+            db.add(MemorySuppression(user_id=user["user_id"], source=item.source, source_id=item.source_id))
     db.delete(item)
     db.commit()
     return {"ok": True}

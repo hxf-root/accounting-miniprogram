@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-from models import Bill, FitnessRecord, Settings, Category, Memory
+from models import Bill, FitnessRecord, Settings, Category, Memory, MemorySuppression
 from schemas import ImportData
 
 
@@ -35,6 +35,8 @@ def export_data(db: Session, user_id: int) -> Dict[str, Any]:
     return {
         "version": 2,
         "memories": memories,
+        "memory_suppressions": [{"source": m.source, "source_id": m.source_id}
+                                for m in db.query(MemorySuppression).filter_by(user_id=user_id).all()],
         "categories": categories,
         "bills": bills,
         "fitness": fitness,
@@ -74,9 +76,18 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             "exercise_type", "duration_minutes", "calories", "date", "time", "note"
         )}))
 
+    if data.memory_suppressions is not None:
+        db.query(MemorySuppression).filter_by(user_id=user_id).delete()
+        for entry in data.memory_suppressions:
+            db.add(MemorySuppression(user_id=user_id, source=entry.source, source_id=entry.source_id))
+
     if data.memories is not None:
         db.query(Memory).filter(Memory.user_id == user_id).delete()
         for m in data.memories:
+            if data.memory_suppressions is None and m.source_id and db.query(MemorySuppression).filter_by(
+                user_id=user_id, source=m.source, source_id=m.source_id
+            ).first():
+                continue
             db.add(Memory(user_id=user_id, source=m.source, source_id=m.source_id,
                           occurred_at=m.occurred_at.isoformat(timespec="microseconds"),
                           text=m.text, hidden=m.hidden))
@@ -100,6 +111,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
 
 
 def clear_data(db: Session, user_id: int) -> bool:
+    db.query(MemorySuppression).filter_by(user_id=user_id).delete()
     db.query(Memory).filter(Memory.user_id == user_id).delete()
     db.query(Bill).filter(Bill.user_id == user_id).delete()
     db.query(FitnessRecord).filter(FitnessRecord.user_id == user_id).delete()
