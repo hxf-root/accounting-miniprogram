@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule Baobuji COROS sync (example)
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=baobu-coros-sync.service
+
+[Install]
+WantedBy=timers.target

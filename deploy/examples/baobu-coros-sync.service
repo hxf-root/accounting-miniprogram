@@ -1,0 +1,15 @@
+[Unit]
+Description=Baobuji COROS sync (example, install only after validation)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/accounting-miniprogram/backend
+# This private file must set DATABASE_URL and BAOBU_USER_ID; never commit it.
+EnvironmentFile=/home/ubuntu/.config/baobu/coros.env
+UMask=0077
+ExecStart=/home/ubuntu/accounting-miniprogram/backend/.venv/bin/python coros_worker.py --user-id ${BAOBU_USER_ID} --helper /home/ubuntu/.local/lib/baobu/coros_mcp_login.py --state-dir /home/ubuntu/.config/baobu/coros
+TimeoutStartSec=90
+NoNewPrivileges=true
