@@ -43,9 +43,8 @@ function request(method, path, data) {
       data,
       success(res) {
         if (res.statusCode === 401) {
-          // Token 过期，跳转登录
+          // 凭据失效时清除凭据，由页面选择如何提示。
           clearAuth()
-          wx.reLaunch({ url: '/pages/login/login' })
           reject(new Error('登录已过期'))
           return
         }

@@ -48,6 +48,10 @@ Page({
   },
 
   loadMemories() {
+    if (!api.getToken()) {
+      this.setMemories(EXAMPLES, 'demo', '尚未连接私人回忆 · 以下内容为示例')
+      return Promise.resolve()
+    }
     this.setData({ status: '正在寻找你的回忆 · 以下内容为示例' })
     return api.getMemories().then(items => {
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')

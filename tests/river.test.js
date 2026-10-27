@@ -18,6 +18,13 @@ page.setData = values => Object.assign(page.data, values)
     page.discover()
     assert.notEqual(page.data.selected.id, previous)
   }
+  let called = false
+  api.getToken = () => ''
+  api.getMemories = async () => { called = true; return [] }
+  await page.loadMemories()
+  assert.equal(called, false)
+  assert.match(page.data.status, /尚未连接私人回忆/)
+  api.getToken = () => 'test-token'
   api.getMemories = async () => Array.from({length: 6}, (_, i) => ({
     id: i + 1, source: i === 5 ? 'coros' : 'manual',
     occurred_at: '2026-10-26T10:00:00+00:00', text: '测试记录 ' + i,

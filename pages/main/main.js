@@ -22,7 +22,7 @@ Page({
 
   loadPageData() {
     const user = api.getUser()
-    this.setData({ userName: user.username || '用户' })
+    this.setData({ userName: user.username || '私人空间' })
     this.setGreeting()
     this.setTodayDate()
   },

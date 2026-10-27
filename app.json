@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/login/login",
     "pages/main/main",
+    "pages/login/login",
     "pages/settings/settings",
     "pages/river/river"
   ],

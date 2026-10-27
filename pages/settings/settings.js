@@ -5,6 +5,7 @@ Page({
   data: {
     statusBarHeight: 0,
     userName: '',
+    hasAccount: false,
 
   },
 
@@ -15,7 +16,7 @@ Page({
 
   onShow() {
     const user = api.getUser()
-    this.setData({ userName: user.username || '用户' })
+    this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()) })
   },
 
   // ========== 数据导出 ==========
@@ -63,6 +64,10 @@ Page({
       })
   },
 
+  connectAccount() {
+    wx.navigateTo({ url: '/pages/login/login' })
+  },
+
   // ========== 退出登录 ==========
 
   onLogout() {
@@ -72,7 +77,7 @@ Page({
       success(res) {
         if (res.confirm) {
           api.clearAuth()
-          wx.reLaunch({ url: '/pages/login/login' })
+          wx.reLaunch({ url: '/pages/main/main' })
         }
       },
     })
