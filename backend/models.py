@@ -11,6 +11,19 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class ExternalIdentity(Base):
+    """Opaque provider identity bound to an existing local account."""
+    __tablename__ = "external_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "subject_digest", name="uq_external_subject"),
+        UniqueConstraint("user_id", "provider", name="uq_external_user_provider"),
+    )
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    provider = Column(String(32), nullable=False)
+    subject_digest = Column(String(64), nullable=False)
+
+
 class Memory(Base):
     __tablename__ = "memories"
     __table_args__ = (
