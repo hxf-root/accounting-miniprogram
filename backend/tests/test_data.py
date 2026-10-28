@@ -1,6 +1,14 @@
 """数据备份、恢复和清空测试"""
 
 
+def import_with_preview(client, headers, data):
+    preview = client.post('/api/data/import/preview', headers=headers, json=data)
+    if preview.status_code != 200:
+        return preview
+    return client.post('/api/data/import/commit', headers=headers,
+                       json={'data': data, 'preview_token': preview.json()['preview_token']})
+
+
 def _create_bill(client, auth_headers, category):
     response = client.post("/api/bills", headers=auth_headers, json={
         "type": category["type"],
@@ -23,7 +31,7 @@ def test_export_import_round_trip_includes_categories(client, auth_headers):
     assert exported["version"] == 2
     assert exported["categories"]
 
-    imported = client.post("/api/data/import", headers=auth_headers, json=exported)
+    imported = import_with_preview(client, auth_headers, exported)
     assert imported.status_code == 200
 
     restored_categories = client.get("/api/categories?type=expense", headers=auth_headers).json()
@@ -51,7 +59,7 @@ def test_clear_data_is_unavailable_until_sync_can_be_paused_safely(client, auth_
 
 def test_legacy_import_without_categories_preserves_categories(client, auth_headers):
     before = client.get("/api/categories", headers=auth_headers).json()
-    response = client.post("/api/data/import", headers=auth_headers, json={
+    response = import_with_preview(client, auth_headers, {
         "bills": [],
         "fitness": [],
         "settings": {},

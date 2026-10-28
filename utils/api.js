@@ -109,7 +109,8 @@ module.exports = {
 
   // 数据导入导出
   exportData: () => request('GET', '/api/data/export'),
-  importData: (data) => request('POST', '/api/data/import', data),
+  previewImport: (data) => request('POST', '/api/data/import/preview', data),
+  commitImport: (data, previewToken) => request('POST', '/api/data/import/commit', { data, preview_token: previewToken }),
   clearData: () => request('DELETE', '/api/data'),
 
   // Token 管理

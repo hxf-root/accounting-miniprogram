@@ -31,5 +31,12 @@ const api = require('../utils/api.js')
   statusCode = 200
   await api.loginWechat('fake-code')
   assert.deepEqual(received.data, { code: 'fake-code' })
+  const backup = { version: 2, memories: [] }
+  await api.previewImport(backup)
+  assert.ok(received.url.endsWith('/api/data/import/preview'))
+  assert.deepEqual(received.data, backup)
+  await api.commitImport(backup, 'fictional-preview-token')
+  assert.ok(received.url.endsWith('/api/data/import/commit'))
+  assert.deepEqual(received.data, { data: backup, preview_token: 'fictional-preview-token' })
   console.log('wechat api: 401 handling and credential request passed')
 })().catch(error => { console.error(error); process.exitCode = 1 })

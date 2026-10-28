@@ -45,9 +45,11 @@ def export_data(db: Session, user_id: int) -> Dict[str, Any]:
 
 
 def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
-    # 清空旧数据
-    db.query(Bill).filter(Bill.user_id == user_id).delete()
-    db.query(FitnessRecord).filter(FitnessRecord.user_id == user_id).delete()
+    # Missing fields preserve existing data; an explicit empty list replaces it.
+    if data.bills is not None:
+        db.query(Bill).filter(Bill.user_id == user_id).delete()
+    if data.fitness is not None:
+        db.query(FitnessRecord).filter(FitnessRecord.user_id == user_id).delete()
 
     category_id_map = {}
     if data.categories is not None:
@@ -63,7 +65,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             if old_id is not None:
                 category_id_map[old_id] = category.id
 
-    for b in data.bills:
+    for b in data.bills or []:
         payload = {k: v for k, v in b.items() if k in (
             "type", "amount", "category_id", "category_name", "payment_method", "remark", "date", "time"
         )}
@@ -71,7 +73,7 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             payload["category_id"] = category_id_map[payload["category_id"]]
         db.add(Bill(user_id=user_id, **payload))
 
-    for r in data.fitness:
+    for r in data.fitness or []:
         db.add(FitnessRecord(user_id=user_id, **{k: v for k, v in r.items() if k in (
             "exercise_type", "duration_minutes", "calories", "date", "time", "note"
         )}))
@@ -108,8 +110,8 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
     return {
         "ok": True,
         "categories": len(data.categories) if data.categories is not None else None,
-        "bills": len(data.bills),
-        "fitness": len(data.fitness),
+        "bills": len(data.bills) if data.bills is not None else None,
+        "fitness": len(data.fitness) if data.fitness is not None else None,
     }
 
 

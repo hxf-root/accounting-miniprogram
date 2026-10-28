@@ -3,6 +3,14 @@ import pytest
 from integrations.coros_records import CorosResponseError, parse_sport_records
 
 
+def import_with_preview(client, headers, data):
+    preview = client.post('/api/data/import/preview', headers=headers, json=data)
+    if preview.status_code != 200:
+        return preview
+    return client.post('/api/data/import/commit', headers=headers,
+                       json={'data': data, 'preview_token': preview.json()['preview_token']})
+
+
 def response(text):
     return {'content': [{'type': 'text', 'text': json.dumps(text)}], 'isError': False}
 
@@ -45,7 +53,7 @@ def test_idempotent_import_and_deleted_record_stays_deleted(client, auth_headers
     backup = client.get('/api/data/export', headers=auth_headers).json()
     assert len(backup['memory_suppressions']) == 1
     assert client.delete('/api/data', headers=auth_headers).status_code == 503
-    assert client.post('/api/data/import', headers=auth_headers, json=backup).status_code == 200
+    assert import_with_preview(client, auth_headers, backup).status_code == 200
     assert import_sport_records(db_session, user_id, response(SAMPLE), requested_limit=20)['suppressed'] == 1
 
 
@@ -69,7 +77,7 @@ def test_import_failure_leaves_existing_data_and_old_backup_preserves_suppressio
     legacy = {'bills': [], 'fitness': [], 'settings': {}, 'memories': [{
         'source': 'coros', 'source_id': '123456789',
         'occurred_at': '2026-10-26T10:48:36+00:00', 'text': 'old', 'hidden': False}]}
-    assert client.post('/api/data/import', headers=auth_headers, json=legacy).status_code == 200
+    assert import_with_preview(client, auth_headers, legacy).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json() == []
     assert import_sport_records(db_session, user_id, response(SAMPLE), requested_limit=20)['suppressed'] == 1
 
@@ -82,11 +90,11 @@ def test_import_pre_deletion_v2_backup_preserves_newer_suppression(client, auth_
     backup = client.get('/api/data/export', headers=auth_headers).json()
     item = client.get('/api/memories', headers=auth_headers).json()[0]
     assert client.delete(f"/api/memories/{item['id']}", headers=auth_headers).status_code == 200
-    assert client.post('/api/data/import', headers=auth_headers, json=backup).status_code == 200
+    assert import_with_preview(client, auth_headers, backup).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json() == []
     assert import_sport_records(db_session, user_id, response(SAMPLE), requested_limit=20)['suppressed'] == 1
-    assert client.post('/api/data/import', headers=auth_headers, json={**backup, 'version': 99}).status_code == 422
+    assert import_with_preview(client, auth_headers, {**backup, 'version': 99}).status_code == 422
     # A corrupt partial backup is rejected before replacing any data.
     broken = {'bills': [], 'memory_suppressions': [{'source': 'coros', 'source_id': '123456789'}]}
-    assert client.post('/api/data/import', headers=auth_headers, json=broken).status_code == 422
+    assert import_with_preview(client, auth_headers, broken).status_code == 422
     assert import_sport_records(db_session, user_id, response(SAMPLE), requested_limit=20)['suppressed'] == 1

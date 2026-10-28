@@ -1,6 +1,14 @@
 """回忆接口、账号隔离和旧备份兼容。"""
 
 
+def import_with_preview(client, headers, data):
+    preview = client.post('/api/data/import/preview', headers=headers, json=data)
+    if preview.status_code != 200:
+        return preview
+    return client.post('/api/data/import/commit', headers=headers,
+                       json={'data': data, 'preview_token': preview.json()['preview_token']})
+
+
 def payload(source='manual', source_id=None, text='普通的一天'):
     return {'source': source, 'source_id': source_id,
             'occurred_at': '2026-10-26T10:00:00+08:00', 'text': text}
@@ -27,13 +35,13 @@ def test_export_restore_and_old_import(client, auth_headers):
     created = client.post('/api/memories', headers=auth_headers, json=payload())
     assert created.status_code == 201
     legacy = {'bills': [], 'fitness': [], 'settings': {}}
-    assert client.post('/api/data/import', headers=auth_headers, json=legacy).status_code == 200
+    assert import_with_preview(client, auth_headers, legacy).status_code == 200
     assert len(client.get('/api/memories', headers=auth_headers).json()) == 1
     backup = client.get('/api/data/export', headers=auth_headers).json()
     assert len(backup['memories']) == 1
     assert client.delete(f"/api/memories/{created.json()['id']}", headers=auth_headers).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json() == []
-    assert client.post('/api/data/import', headers=auth_headers, json=backup).status_code == 200
+    assert import_with_preview(client, auth_headers, backup).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json()[0]['text'] == '普通的一天'
 
 

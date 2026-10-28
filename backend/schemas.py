@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, List, Literal
 from datetime import datetime, timezone
 
@@ -168,13 +168,14 @@ class MemorySuppressionInput(BaseModel):
 
 # --- Data Import/Export ---
 class ImportData(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     version: Literal[2] | None = None  # Missing version is a supported legacy export.
-    categories: Optional[List] = None
-    memories: Optional[List[MemoryCreate]] = None
-    memory_suppressions: Optional[List[MemorySuppressionInput]] = None
-    bills: List = []
-    fitness: List = []
-    settings: dict = {}
+    categories: Optional[List[dict]] = Field(default=None, max_length=10000)
+    memories: Optional[List[MemoryCreate]] = Field(default=None, max_length=10000)
+    memory_suppressions: Optional[List[MemorySuppressionInput]] = Field(default=None, max_length=10000)
+    bills: Optional[List[dict]] = Field(default=None, max_length=10000)
+    fitness: Optional[List[dict]] = Field(default=None, max_length=10000)
+    settings: dict = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def unique_memory_sources(self):
@@ -185,6 +186,11 @@ class ImportData(BaseModel):
         if len(keys) != len(set(keys)) or len(suppressed) != len(set(suppressed)) or set(keys) & set(suppressed):
             raise ValueError("备份包含重复或冲突的回忆来源")
         return self
+
+
+class ImportCommit(BaseModel):
+    data: ImportData
+    preview_token: str = Field(min_length=1, max_length=4096, repr=False)
 
 
 # --- Data ---
