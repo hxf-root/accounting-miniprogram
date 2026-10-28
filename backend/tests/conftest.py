@@ -2,8 +2,14 @@
 
 import os
 import tempfile
+import atexit
 
-os.environ.setdefault("JWT_SECRET_KEY", "test-only-jwt-secret-key")
+# pytest imports the app during collection. Ignore any inherited production
+# settings before importing it, including when invoked outside `make test`.
+_bootstrap_dir = tempfile.TemporaryDirectory(prefix="baobu-pytest-")
+atexit.register(_bootstrap_dir.cleanup)
+os.environ["DATABASE_URL"] = "sqlite:///" + os.path.join(_bootstrap_dir.name, "bootstrap.db")
+os.environ["JWT_SECRET_KEY"] = "test-only-jwt-secret-key"
 
 pytest_plugins = []
 

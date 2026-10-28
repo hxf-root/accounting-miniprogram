@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 # --- Auth ---
 class UserRegister(BaseModel):
     username: str = Field(min_length=2, max_length=50)
-    password: str = Field(min_length=4, max_length=50)
+    password: str = Field(min_length=6, max_length=50)
 
 
 class UserLogin(BaseModel):
@@ -168,6 +168,7 @@ class MemorySuppressionInput(BaseModel):
 
 # --- Data Import/Export ---
 class ImportData(BaseModel):
+    version: Literal[2] | None = None  # Missing version is a supported legacy export.
     categories: Optional[List] = None
     memories: Optional[List[MemoryCreate]] = None
     memory_suppressions: Optional[List[MemorySuppressionInput]] = None

@@ -8,7 +8,7 @@
 #   make start-d  启动后端服务（后台 daemon）
 #   make test     运行测试
 #   make install  安装依赖
-#   make deploy   部署：git pull + install + restart
+#   make deploy   暂停的旧部署入口
 #   make backup   备份 SQLite 数据库
 #   make clean    清理 __pycache__ / .pyc / .pytest_cache
 # ====================================================================
@@ -75,40 +75,17 @@ test: $(VENV_DIR)
 	@echo "[INFO] 测试完成"
 
 # ====================================================================
-# deploy — 部署：git pull + install + restart
+# deploy — 旧入口暂停，等待完整部署及回退流程
 # ====================================================================
-deploy: install
-	@echo "[INFO] 拉取最新代码..."
-	@cd $(PROJECT_ROOT) && git pull --ff-only
-	@echo "[INFO] 重新安装依赖（代码可能已更新）..."
-	@$(VENV_PIP) install --quiet -r $(BACKEND_DIR)/requirements.txt
-	@echo "[INFO] 重启服务..."
-	@if [ -f $(BACKEND_DIR)/.server.pid ]; then \
-		PID=$$(cat $(BACKEND_DIR)/.server.pid); \
-		if kill -0 $$PID 2>/dev/null; then \
-			echo "[INFO] 停止旧进程 (PID: $$PID)"; \
-			kill $$PID && sleep 1; \
-		fi; \
-	fi
-	@cd $(BACKEND_DIR) && nohup $(VENV_UVICORN) main:app --host $(HOST) --port $(PORT) \
-		> $(BACKEND_DIR)/logs/startup.log 2>&1 & \
-		echo $$! > $(BACKEND_DIR)/.server.pid
-	@echo "[INFO] 部署完成，新进程 PID: $$(cat $(BACKEND_DIR)/.server.pid)"
+deploy:
+	@echo "部署已暂停：需先完成备份、迁移及回退方案。" >&2
+	@exit 1
 
 # ====================================================================
 # backup — 备份 SQLite 数据库
 # ====================================================================
 backup:
-	@mkdir -p $(BACKUP_DIR)
-	@if [ -f "$(DB_FILE)" ]; then \
-		TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
-		BACKUP_FILE="$(BACKUP_DIR)/baobaoji_$$TIMESTAMP.db"; \
-		cp "$(DB_FILE)" "$$BACKUP_FILE"; \
-		echo "[INFO] 数据库已备份至: $$BACKUP_FILE"; \
-		echo "[INFO] 大小: $$(du -h "$$BACKUP_FILE" | cut -f1)"; \
-	else \
-		echo "[WARN] 数据库文件不存在: $(DB_FILE)"; \
-	fi
+	@python3 "$(PROJECT_ROOT)/deploy/backup_sqlite.py" --database "$(DB_FILE)" --backup-dir "$(BACKUP_DIR)"
 
 # ====================================================================
 # clean — 清理缓存文件

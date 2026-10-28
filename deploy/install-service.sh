@@ -2,6 +2,9 @@
 # 安装 systemd 服务
 set -euo pipefail
 
+echo '服务安装已暂停：需先完成备份、迁移及回退方案。' >&2
+exit 1
+
 SERVICE_NAME=baobaoji
 SERVICE_SRC=/home/ubuntu/accounting-miniprogram/deploy/baobaoji.service
 SERVICE_DST=/etc/systemd/system/${SERVICE_NAME}.service

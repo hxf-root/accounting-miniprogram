@@ -76,18 +76,20 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             "exercise_type", "duration_minutes", "calories", "date", "time", "note"
         )}))
 
-    if data.memory_suppressions is not None:
-        db.query(MemorySuppression).filter_by(user_id=user_id).delete()
-        for entry in data.memory_suppressions:
+    # A backup is historical: never erase a deletion made after that backup.
+    existing_suppressions = {(entry.source, entry.source_id) for entry in
+                             db.query(MemorySuppression).filter_by(user_id=user_id).all()}
+    for entry in data.memory_suppressions or []:
+        key = (entry.source, entry.source_id)
+        if key not in existing_suppressions:
             db.add(MemorySuppression(user_id=user_id, source=entry.source, source_id=entry.source_id))
+            existing_suppressions.add(key)
 
     if data.memories is not None:
         db.query(SyncState).filter_by(user_id=user_id).delete()
         db.query(Memory).filter(Memory.user_id == user_id).delete()
         for m in data.memories:
-            if data.memory_suppressions is None and m.source_id and db.query(MemorySuppression).filter_by(
-                user_id=user_id, source=m.source, source_id=m.source_id
-            ).first():
+            if m.source_id and (m.source, m.source_id) in existing_suppressions:
                 continue
             db.add(Memory(user_id=user_id, source=m.source, source_id=m.source_id,
                           occurred_at=m.occurred_at.isoformat(timespec="microseconds"),

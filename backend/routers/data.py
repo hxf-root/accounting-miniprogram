@@ -1,6 +1,6 @@
 """数据导入导出 API 路由层（薄层，委托给 service）"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -23,5 +23,6 @@ def import_data(data: ImportData, db: Session = Depends(get_db), user: dict = De
 
 @router.delete("")
 def clear_data(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    data_service.clear_data(db, user["user_id"])
-    return {"ok": True}
+    # Until source pausing and in-flight job fencing exist, clearing can cause
+    # an authorized worker to reimport deleted data immediately afterward.
+    raise HTTPException(status_code=503, detail="暂不能清空数据：同步暂停和删除保护尚未完成")

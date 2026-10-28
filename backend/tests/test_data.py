@@ -23,7 +23,6 @@ def test_export_import_round_trip_includes_categories(client, auth_headers):
     assert exported["version"] == 2
     assert exported["categories"]
 
-    assert client.delete("/api/data", headers=auth_headers).status_code == 200
     imported = client.post("/api/data/import", headers=auth_headers, json=exported)
     assert imported.status_code == 200
 
@@ -34,20 +33,20 @@ def test_export_import_round_trip_includes_categories(client, auth_headers):
     assert restored_bills[0]["category_id"] in {item["id"] for item in restored_categories}
 
 
-def test_clear_data_resets_all_user_data(client, auth_headers):
+def test_clear_data_is_unavailable_until_sync_can_be_paused_safely(client, auth_headers):
     categories = client.get("/api/categories?type=expense", headers=auth_headers).json()
     _create_bill(client, auth_headers, categories[0])
     client.put("/api/settings", headers=auth_headers, json={"monthly_budget": 3000})
 
     response = client.delete("/api/data", headers=auth_headers)
-    assert response.status_code == 200
+    assert response.status_code == 503
 
     exported = client.get("/api/data/export", headers=auth_headers).json()
     settings = client.get("/api/settings", headers=auth_headers).json()
-    assert exported["bills"] == []
+    assert len(exported["bills"]) == 1
     assert exported["fitness"] == []
-    assert exported["categories"] == []
-    assert settings["monthly_budget"] == 0
+    assert exported["categories"]
+    assert settings["monthly_budget"] == 3000
 
 
 def test_legacy_import_without_categories_preserves_categories(client, auth_headers):

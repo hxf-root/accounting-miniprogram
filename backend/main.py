@@ -14,12 +14,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 load_dotenv()
 
-from database import engine, Base
+from database import engine
 from routers import auth, bills, categories, fitness, stats, settings, data, memories, wechat_identity
 
 START_TIME = time.time()
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="抱布记 API", version="1.0.0")
 

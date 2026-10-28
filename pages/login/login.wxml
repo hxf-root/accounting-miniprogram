@@ -27,7 +27,7 @@
           placeholder-class="input-placeholder"
           value="{{username}}"
           bindinput="onUsernameInput"
-          maxlength="20"
+          maxlength="50"
         />
       </view>
     </view>
@@ -44,7 +44,7 @@
           placeholder-class="input-placeholder"
           value="{{password}}"
           bindinput="onPasswordInput"
-          maxlength="32"
+          maxlength="50"
         />
       </view>
     </view>

@@ -33,7 +33,7 @@ Page({
       wx.showToast({ title: '请输入密码', icon: 'none' })
       return
     }
-    if (password.length < 6) {
+    if (isRegister && password.length < 6) {
       wx.showToast({ title: '密码至少6位', icon: 'none' })
       return
     }

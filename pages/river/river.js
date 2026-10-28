@@ -49,30 +49,68 @@ Page({
   },
 
   onShow() {
-    return identity.restore().then(() => this.loadMemories())
+    const version = this.nextRequestVersion()
+    return identity.restore().then(() => {
+      if (this.requestVersion === version) return this.loadMemories()
+    })
+  },
+
+  onHide() {
+    this.nextRequestVersion()
+    this.setMemories(EXAMPLES, 'demo', '尚未连接私人回忆 · 以下内容为示例')
+  },
+
+  onUnload() {
+    this.nextRequestVersion()
+  },
+
+  nextRequestVersion() {
+    this.requestVersion = (this.requestVersion || 0) + 1
+    return this.requestVersion
+  },
+
+  handleAuthChange(version, allowRestore) {
+    if (version !== this.requestVersion) return Promise.resolve()
+    // Drop all previously rendered private data before any asynchronous recovery.
+    this.setMemories(EXAMPLES, 'demo', '登录已失效 · 以下内容为示例')
+    if (api.getToken()) return this.loadMemories(false)
+    if (!allowRestore || !identity.enabled()) return Promise.resolve()
+    return identity.restore().then(ok => {
+      if (version !== this.requestVersion) return
+      if (ok) return this.loadMemories(false)
+      this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例')
+    })
   },
 
   loadMemories(allowRestore = true) {
+    const version = this.nextRequestVersion()
     if (!api.getToken()) {
       this.setMemories(EXAMPLES, 'demo', '尚未连接私人回忆 · 以下内容为示例')
       return Promise.resolve()
     }
     const requestedToken = api.getToken()
-    this.setData({ status: '正在寻找你的回忆 · 以下内容为示例' })
+    if (this.data.mode === 'live' && this.memoryToken !== requestedToken) {
+      this.setMemories(EXAMPLES, 'demo', '正在寻找你的回忆 · 以下内容为示例')
+    }
+    this.setData({ status: this.data.mode === 'live' ? '正在更新你的私人回忆' : '正在寻找你的回忆 · 以下内容为示例', loadingMore: false, loadMoreError: '' })
     return api.getMemories().then(items => {
-      if (api.getToken() !== requestedToken) return
+      if (version !== this.requestVersion) return
+      if (api.getToken() !== requestedToken) return this.handleAuthChange(version, allowRestore)
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       if (!items.length) {
         this.setMemories(EXAMPLES, 'demo', '还没有真实回忆 · 以下内容为示例')
         return
       }
       const memories = items.map(toMemory)
+      this.memoryToken = requestedToken
       this.setMemories(memories, 'live', '你的私人回忆', items.length === 50)
     }).catch(() => {
-      if (allowRestore && !api.getToken() && identity.enabled()) {
-        return identity.restore().then(ok => ok ? this.loadMemories(false) : this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例'))
+      if (version !== this.requestVersion) return
+      if (api.getToken() !== requestedToken) return this.handleAuthChange(version, allowRestore)
+      if (this.data.mode === 'live' && this.memoryToken === requestedToken) {
+        this.setData({ status: '暂时无法更新，显示已加载的回忆', loadingMore: false })
+        return
       }
-      if (api.getToken() && api.getToken() !== requestedToken) return
       this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例')
     })
   },
@@ -85,9 +123,12 @@ Page({
     if (this.data.mode !== 'live' || !this.data.hasMore || this.data.loadingMore) return Promise.resolve()
     const cursor = this.data.nextCursor
     const requestedToken = api.getToken()
+    const version = this.requestVersion
+    if (!requestedToken || this.memoryToken !== requestedToken) return this.handleAuthChange(version, true)
     this.setData({ loadingMore: true, loadMoreError: '' })
     return api.getMemories(cursor).then(items => {
-      if (api.getToken() !== requestedToken) return
+      if (version !== this.requestVersion) return
+      if (api.getToken() !== requestedToken) return this.handleAuthChange(version, true)
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       const incoming = items.map(toMemory)
       const seen = new Set(this.data.memories.map(item => item.id))
@@ -101,7 +142,8 @@ Page({
       this.setData({ memories, nextCursor: incoming.length ? incoming[incoming.length - 1] : cursor, hasMore: items.length === 50,
         loadingMore: false, countLabel: `已加载 ${memories.length} 条` })
     }).catch(() => {
-      if (api.getToken() !== requestedToken) return
+      if (version !== this.requestVersion) return
+      if (api.getToken() !== requestedToken) return this.handleAuthChange(version, true)
       this.setData({ loadingMore: false, loadMoreError: '加载失败，请重试' })
     })
   },

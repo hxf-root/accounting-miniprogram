@@ -7,11 +7,12 @@ def payload(source='manual', source_id=None, text='普通的一天'):
 
 
 def test_privacy_visibility_and_deduplication(client, auth_headers):
-    first = client.post('/api/memories', headers=auth_headers, json=payload('coros', 'run-1'))
+    first = client.post('/api/memories', headers=auth_headers, json=payload('manual', 'manual-1'))
     assert first.status_code == 201
     item = first.json()
     assert item['occurred_at'].startswith('2026-10-26T02:00:00')
-    assert client.post('/api/memories', headers=auth_headers, json=payload('coros', 'run-1')).status_code == 409
+    assert client.post('/api/memories', headers=auth_headers, json=payload('manual', 'manual-1')).status_code == 409
+    assert client.post('/api/memories', headers=auth_headers, json=payload('coros', 'run-1')).status_code == 403
     other = client.post('/api/auth/register', json={'username': 'another', 'password': 'test1234'}).json()
     headers2 = {'Authorization': 'Bearer ' + other['token']}
     assert client.get('/api/memories', headers=headers2).json() == []
@@ -23,13 +24,14 @@ def test_privacy_visibility_and_deduplication(client, auth_headers):
 
 
 def test_export_restore_and_old_import(client, auth_headers):
-    assert client.post('/api/memories', headers=auth_headers, json=payload()).status_code == 201
+    created = client.post('/api/memories', headers=auth_headers, json=payload())
+    assert created.status_code == 201
     legacy = {'bills': [], 'fitness': [], 'settings': {}}
     assert client.post('/api/data/import', headers=auth_headers, json=legacy).status_code == 200
     assert len(client.get('/api/memories', headers=auth_headers).json()) == 1
     backup = client.get('/api/data/export', headers=auth_headers).json()
     assert len(backup['memories']) == 1
-    assert client.delete('/api/data', headers=auth_headers).status_code == 200
+    assert client.delete(f"/api/memories/{created.json()['id']}", headers=auth_headers).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json() == []
     assert client.post('/api/data/import', headers=auth_headers, json=backup).status_code == 200
     assert client.get('/api/memories', headers=auth_headers).json()[0]['text'] == '普通的一天'

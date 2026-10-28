@@ -26,6 +26,8 @@ def serialize(item):
 
 @router.post("", status_code=201)
 def create_memory(data: MemoryCreate, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    if data.source != 'manual':
+        raise HTTPException(status_code=403, detail='来源记录只能由同步服务导入')
     if data.source_id and db.query(MemorySuppression).filter_by(
         user_id=user["user_id"], source=data.source, source_id=data.source_id
     ).first():

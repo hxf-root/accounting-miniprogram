@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const api = require('../utils/api.js')
+const identity = require('../utils/wechatIdentity.js')
 let page
 const oldPage = global.Page
 global.Page = config => { page = config }
@@ -61,6 +62,49 @@ page.setData = values => Object.assign(page.data, values)
   assert.match(page.data.status, /无法连接/)
   api.getMemories = async () => [{ id: 1, occurred_at: 'not a date' }]
   await page.loadMemories()
+  assert.equal(page.data.mode, 'demo')
+
+  // Two refreshes with the same token can resolve in the opposite order.
+  let oldResolve, newResolve
+  api.getMemories = () => new Promise(resolve => { oldResolve = resolve })
+  const older = page.loadMemories()
+  api.getMemories = () => new Promise(resolve => { newResolve = resolve })
+  const newer = page.loadMemories()
+  newResolve(batch(50).slice(0, 1)); await newer
+  oldResolve(batch(0).slice(0, 1)); await older
+  assert.equal(page.data.selected.id, '51')
+
+  // Refresh invalidates an outstanding pagination request as well.
+  api.getMemories = async () => batch(0)
+  await page.loadMemories()
+  let pageResolve
+  api.getMemories = () => new Promise(resolve => { pageResolve = resolve })
+  const oldPageRequest = page.loadMore()
+  api.getMemories = async () => batch(100).slice(0, 1)
+  await page.loadMemories()
+  pageResolve(batch(50)); await oldPageRequest
+  assert.equal(page.data.memories.length, 1)
+  assert.equal(page.data.selected.id, '101')
+
+  // A 401 clears private content before any session recovery.
+  let token = 'test-token'
+  api.getToken = () => token
+  identity.enabled = () => false
+  api.getMemories = async () => batch(0)
+  await page.loadMemories()
+  api.getMemories = async () => { token = ''; throw new Error('401') }
+  await page.loadMore()
+  assert.equal(page.data.mode, 'demo')
+  assert.equal(page.data.loadingMore, false)
+  assert.ok(!page.data.memories.some(item => item.id === '1'))
+
+  // Hidden pages cannot be repopulated by a late response.
+  token = 'test-token'
+  let hiddenResolve
+  api.getMemories = () => new Promise(resolve => { hiddenResolve = resolve })
+  const pending = page.loadMemories()
+  page.onHide()
+  hiddenResolve(batch(0)); await pending
   assert.equal(page.data.mode, 'demo')
   console.log('river page: sample, data, empty, error and selection passed')
 })().catch(error => { console.error(error); process.exitCode = 1 })

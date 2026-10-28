@@ -112,3 +112,12 @@ def test_legacy_jwt_epoch_revocation_and_new_password_login(client, db_session):
     assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + fresh}).status_code == 200
     missing_exp = jwt.encode({'user_id': user['user_id'], 'username': 'legacy-epoch', 'auth_epoch': 1}, SECRET_KEY, algorithm=ALGORITHM)
     assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + missing_exp}).status_code == 401
+
+
+def test_old_short_password_can_login_but_cannot_be_used_to_register(client, db_session):
+    from auth import hash_password
+    from models import User
+    db_session.add(User(username='legacy-short', password_hash=hash_password('1234')))
+    db_session.commit()
+    assert client.post('/api/auth/login', json={'username': 'legacy-short', 'password': '1234'}).status_code == 200
+    assert client.post('/api/auth/register', json={'username': 'new-short', 'password': '1234'}).status_code == 422
