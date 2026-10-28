@@ -45,11 +45,15 @@ function request(method, path, data, options = {}) {
         if (res.statusCode === 401) {
           // 凭据失效时清除凭据，由页面选择如何提示。
           if (!options.preserveAuthOn401 && getToken() === token) clearAuth()
-          reject(new Error('登录已过期'))
+          const error = new Error('登录已过期')
+          error.statusCode = 401
+          reject(error)
           return
         }
         if (res.statusCode >= 400) {
-          reject(new Error(res.data?.detail || '请求失败'))
+          const error = new Error(res.data?.detail || '请求失败')
+          error.statusCode = res.statusCode
+          reject(error)
           return
         }
         resolve(res.data)
@@ -67,6 +71,9 @@ module.exports = {
     request('POST', '/api/auth/login', { username, password }),
   register: (username, password) =>
     request('POST', '/api/auth/register', { username, password }),
+  getCapabilities: () => request('GET', '/api/capabilities', undefined, { preserveAuthOn401: true }),
+  getMe: () => request('GET', '/api/me'),
+  logout: () => request('POST', '/api/auth/logout'),
 
   // 微信身份：此实验接口由服务器决定是否启用。
   bindWechat: (code, password) => request('POST', '/api/auth/wechat/bind', { code, password }, { preserveAuthOn401: true }),

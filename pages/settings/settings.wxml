@@ -30,13 +30,19 @@
 
     <view wx:if="{{hasAccount}}" class="section-title">微信连接</view>
     <view wx:if="{{hasAccount}}" class="glass-card">
-      <view wx:if="{{!wechatEnabled}}" class="action-row" bindtap="bindWechat">
+      <view wx:if="{{wechatConfigured === true && wechatBound === false}}" class="action-row" bindtap="bindWechat">
         <view class="action-text-wrap"><text class="action-label">连接微信</text><text class="action-desc">连接后可尝试自动进入私人回忆</text></view>
         <text class="action-arrow">›</text>
       </view>
-      <view wx:else class="action-row" bindtap="unbindWechat">
+      <view wx:elif="{{wechatConfigured === true && wechatBound === true}}" class="action-row" bindtap="unbindWechat">
         <view class="action-text-wrap"><text class="action-label">解除微信连接</text><text class="action-desc">解除后关闭自动识别</text></view>
         <text class="action-arrow">›</text>
+      </view>
+      <view wx:else class="action-row">
+        <view class="action-text-wrap"><text class="action-label">{{wechatBound === true ? '微信已连接' : '微信连接暂不可用'}}</text><text class="action-desc">{{wechatBound === true ? '连接服务暂不可用' : '连接状态暂无法确认，请稍后重试'}}</text></view>
+      </view>
+      <view wx:if="{{wechatBound === true && (wechatConfigured === true || autoEnabled)}}" class="action-row" bindtap="setAutoEnabled">
+        <view class="action-text-wrap"><text class="action-label">本机自动识别：{{autoEnabled ? '已开启' : '已关闭'}}</text><text class="action-desc">点击切换，不影响微信绑定</text></view>
       </view>
     </view>
 

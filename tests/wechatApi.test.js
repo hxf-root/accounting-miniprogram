@@ -11,6 +11,8 @@ global.wx = {
 const api = require('../utils/api.js')
 ;(async () => {
   api.setToken('existing-account-token')
+  await assert.rejects(api.getCapabilities())
+  assert.equal(api.getToken(), 'existing-account-token')
   await assert.rejects(api.bindWechat('invalid-code', 'fake-password'))
   assert.equal(api.getToken(), 'existing-account-token')
   assert.deepEqual(received.data, { code: 'invalid-code', password: 'fake-password' })

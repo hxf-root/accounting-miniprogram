@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const identity = require('../../utils/wechatIdentity.js')
 
 Page({
   data: {
@@ -45,6 +46,9 @@ Page({
     action(username.trim(), password)
       .then(res => {
         // 保存 Token 和用户信息
+        // A manual account switch must not reuse a previous account's local
+        // auto-login preference or an in-flight identity restore.
+        identity.stopAuto()
         api.setToken(res.token)
         api.setUser({
           username: res.username,

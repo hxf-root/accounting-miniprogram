@@ -7,7 +7,9 @@ Page({
     statusBarHeight: 0,
     userName: '',
     hasAccount: false,
-    wechatEnabled: false,
+    wechatConfigured: null,
+    wechatBound: null,
+    autoEnabled: false,
     identityBusy: false,
     showWechatBindModal: false,
     wechatBindPassword: '',
@@ -20,12 +22,43 @@ Page({
   },
 
   onShow() {
+    const version = this.nextStateVersion()
+    this.accountStateToken = null
     const user = api.getUser()
-    this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()), wechatEnabled: identity.enabled() })
-    identity.restore().then(() => {
-      const current = api.getUser()
-      this.setData({ userName: current.username || '私人空间', hasAccount: Boolean(api.getToken()), wechatEnabled: identity.enabled() })
+    this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()),
+      wechatConfigured: null, wechatBound: null, autoEnabled: identity.enabled() })
+    return identity.restore().then(() => {
+      if (version !== this.stateVersion) return
+      return this.refreshAccountState(version)
     })
+  },
+
+  nextStateVersion() {
+    this.stateVersion = (this.stateVersion || 0) + 1
+    return this.stateVersion
+  },
+
+  async refreshAccountState(version = this.stateVersion) {
+    const requestedToken = api.getToken()
+    this.setData({ hasAccount: Boolean(requestedToken), autoEnabled: identity.enabled() })
+    const [capabilities, account] = await Promise.allSettled([
+      api.getCapabilities(), requestedToken ? api.getMe() : Promise.resolve(null),
+    ])
+    if (version !== this.stateVersion) return
+    if (api.getToken() !== requestedToken) {
+      this.setData({ hasAccount: Boolean(api.getToken()), userName: '私人空间', wechatBound: null, wechatConfigured: null })
+      if (api.getToken()) return this.onShow()
+      return
+    }
+    const cap = capabilities.status === 'fulfilled' ? capabilities.value : null
+    const me = account.status === 'fulfilled' ? account.value : null
+    const bound = me && typeof me.wechat_bound === 'boolean' ? me.wechat_bound : null
+    this.accountStateToken = bound !== null ? requestedToken : null
+    if (me && typeof me.username === 'string' && Number.isInteger(me.user_id)) {
+      api.setUser({ username: me.username, user_id: me.user_id })
+    }
+    this.setData({ wechatConfigured: cap && typeof cap.wechat_identity_configured === 'boolean' ? cap.wechat_identity_configured : null,
+      wechatBound: bound, userName: me && me.username || '私人空间', hasAccount: Boolean(api.getToken()), autoEnabled: identity.enabled() })
   },
 
   // ========== 数据导出 ==========
@@ -78,8 +111,16 @@ Page({
   },
 
   bindWechat() {
-    if (this.data.identityBusy) return
+    if (this.data.identityBusy || this.data.wechatConfigured !== true || this.data.wechatBound !== false ||
+        !api.getToken() || api.getToken() !== this.accountStateToken) return
     this.setData({ showWechatBindModal: true, wechatBindPassword: '' })
+  },
+
+  setAutoEnabled() {
+    if (this.data.wechatBound !== true || !api.getToken() || api.getToken() !== this.accountStateToken) return
+    if (identity.enabled()) identity.stopAuto()
+    else if (this.data.wechatConfigured === true) identity.startAuto()
+    this.setData({ autoEnabled: identity.enabled() })
   },
 
   onBindPasswordInput(event) {
@@ -91,6 +132,7 @@ Page({
   },
 
   onHide() {
+    this.nextStateVersion()
     this.setData({ showWechatBindModal: false, wechatBindPassword: '' })
   },
 
@@ -104,7 +146,7 @@ Page({
     this.setData({ identityBusy: true, wechatBindPassword: '' })
     try {
       await identity.bind(password)
-      this.setData({ wechatEnabled: identity.enabled(), showWechatBindModal: false })
+      this.setData({ wechatBound: true, autoEnabled: identity.enabled(), showWechatBindModal: false })
       wx.showToast({ title: '微信已连接', icon: 'success' })
     } catch (_) {
       wx.showToast({ title: '连接失败，请核对密码或稍后再试', icon: 'none' })
@@ -112,7 +154,8 @@ Page({
   },
 
   unbindWechat() {
-    if (this.data.identityBusy) return
+    if (this.data.identityBusy || this.data.wechatConfigured !== true || this.data.wechatBound !== true ||
+        !api.getToken() || api.getToken() !== this.accountStateToken) return
     wx.showModal({
       title: '解除微信连接',
       content: '解除后将退出当前账户，并关闭本机自动识别。',
@@ -132,14 +175,43 @@ Page({
   // ========== 退出登录 ==========
 
   onLogout() {
+    if (this.data.identityBusy) return
     wx.showModal({
       title: '退出登录',
       content: '退出后将关闭本机自动识别，可重新连接账户。',
-      success(res) {
-        if (res.confirm) {
-          identity.stopAuto()
+      success: async res => {
+        if (!res.confirm || this.data.identityBusy) return
+        const token = api.getToken()
+        const wasAutoEnabled = identity.enabled()
+        this.setData({ identityBusy: true })
+        identity.stopAuto()
+        try {
+          await api.logout()
+          if (api.getToken() !== token) return
           api.clearAuth()
           wx.reLaunch({ url: '/pages/main/main' })
+        } catch (error) {
+          if (!api.getToken() && error.statusCode === 401) {
+            wx.reLaunch({ url: '/pages/main/main' })
+            return
+          }
+          if (api.getToken() !== token) return
+          wx.showModal({ title: '仅退出本机？',
+            content: '服务器未能确认撤销当前登录凭证。仅退出本机会清除本机登录信息，但该凭证可能仍有效。',
+            confirmText: '本机退出',
+            success: answer => {
+              if (api.getToken() !== token) return
+              if (!answer.confirm) {
+                if (wasAutoEnabled) identity.startAuto()
+                this.setData({ autoEnabled: identity.enabled() })
+                return
+              }
+              api.clearAuth()
+              wx.reLaunch({ url: '/pages/main/main' })
+            },
+          })
+        } finally {
+          this.setData({ identityBusy: false, autoEnabled: identity.enabled() })
         }
       },
     })

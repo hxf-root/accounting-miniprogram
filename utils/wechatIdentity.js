@@ -35,6 +35,11 @@ function stopAuto() {
   try { wx.removeStorageSync(AUTO_KEY) } catch (_) {}
 }
 
+function startAuto() {
+  if (!api.getToken()) throw new Error('请先连接账户')
+  wx.setStorageSync(AUTO_KEY, true)
+}
+
 function restore() {
   if (!enabled()) return Promise.resolve(false)
   if (api.getToken()) return Promise.resolve(true)
@@ -58,4 +63,4 @@ async function unbind() {
   api.clearAuth()
 }
 
-module.exports = { enabled, bind, restore, unbind, stopAuto }
+module.exports = { enabled, bind, restore, unbind, stopAuto, startAuto }
