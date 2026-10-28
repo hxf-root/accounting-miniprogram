@@ -17,7 +17,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return TokenResponse(
-        token=create_token(user.id, user.username),
+        token=create_token(user.id, user.username, db),
         username=user.username,
         user_id=user.id,
     )
@@ -29,7 +29,7 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(401, "用户名或密码错误")
     return TokenResponse(
-        token=create_token(user.id, user.username),
+        token=create_token(user.id, user.username, db),
         username=user.username,
         user_id=user.id,
     )

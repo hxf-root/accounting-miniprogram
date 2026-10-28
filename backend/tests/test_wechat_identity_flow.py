@@ -52,7 +52,11 @@ def test_binding_login_read_unbind_and_revoke(client):
     assert client.get('/api/memories', headers=short).status_code == 401
     assert client.post('/api/auth/wechat/login', json={'code': 'alice'}).status_code == 401
     assert client.get('/api/memories', headers=bob_short).status_code == 200
-    assert client.get('/api/memories', headers=alice).status_code == 200  # legacy JWT remains valid
+    assert client.get('/api/memories', headers=alice).status_code == 401
+    login = client.post('/api/auth/login', json={'username': 'flow-alice', 'password': 'pass1234'})
+    assert login.status_code == 200
+    assert len(client.get('/api/memories', headers={'Authorization': 'Bearer ' + login.json()['token']}).json()) == 1
+    assert client.get('/api/memories', headers=bob).status_code == 200
 
 
 def test_provider_failure_and_input_validation(client):

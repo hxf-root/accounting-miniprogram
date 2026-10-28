@@ -4,7 +4,7 @@ import pytest
 from identity.bindings import VerifiedIdentity, bind, resolve as resolve_identity
 from identity.sessions import issue, resolve as resolve_session
 from identity.service import unbind_and_revoke_sessions
-from models import User
+from models import AccountAuthEpoch, User
 
 KEY = b'example-key-for-tests-only-32-bytes-long'
 NOW = datetime(2026, 10, 28, tzinfo=timezone.utc)
@@ -37,6 +37,7 @@ def test_unbind_and_revoke_roll_back_together(db_session):
     db_session.expire_all()
     assert resolve_identity(db_session, VerifiedIdentity('wechat', 'first'), KEY) == 1
     assert resolve_session(db_session, first, now=NOW) == 1
+    assert db_session.query(AccountAuthEpoch).filter_by(user_id=1).first() is None
 
 
 def test_identity_issuance_and_unbind_are_serialized(db_session):

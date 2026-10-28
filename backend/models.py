@@ -24,6 +24,13 @@ class ExternalIdentity(Base):
     subject_digest = Column(String(64), nullable=False)
 
 
+class AccountAuthEpoch(Base):
+    """Per-account credential generation; missing row means legacy epoch zero."""
+    __tablename__ = "account_auth_epochs"
+    user_id = Column(Integer, primary_key=True)
+    epoch = Column(Integer, nullable=False, default=0)
+
+
 class AccessSession(Base):
     """Revocable opaque session; raw bearer tokens are never stored."""
     __tablename__ = "access_sessions"

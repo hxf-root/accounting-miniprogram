@@ -1,4 +1,4 @@
-"""Coordinated SQLite identity operations; no HTTP routes or legacy JWT changes.
+"""Coordinated SQLite identity operations; no HTTP routes.
 
 These functions require their own fresh session. All identity-based session
 issuance and identity unbinding must use this same boundary; lower-level binding
@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from identity.bindings import VerifiedIdentity, subject_digest
 from identity.sessions import _digest, _utc_now
-from models import AccessSession, ExternalIdentity, User
+from models import AccessSession, AccountAuthEpoch, ExternalIdentity, User
 
 _PROVIDER = re.compile(r'^[a-z][a-z0-9_]{1,31}$')
 
@@ -57,7 +57,7 @@ def issue_for_identity(db: Session, identity: VerifiedIdentity, key: bytes, *,
 
 
 def unbind_and_revoke_sessions(db: Session, user_id: int, provider: str) -> bool:
-    """Remove binding and revoke new sessions atomically, serializing issuance."""
+    """Remove binding and revoke account credentials atomically, serializing issuance."""
     if not isinstance(provider, str) or not _PROVIDER.fullmatch(provider):
         raise ValueError('invalid identity provider')
     _require_fresh_sqlite(db)
@@ -68,6 +68,11 @@ def unbind_and_revoke_sessions(db: Session, user_id: int, provider: str) -> bool
             db.rollback()
             return False
         db.delete(identity)
+        epoch = db.query(AccountAuthEpoch).filter_by(user_id=user_id).first()
+        if epoch is None:
+            db.add(AccountAuthEpoch(user_id=user_id, epoch=1))
+        else:
+            epoch.epoch += 1
         db.query(AccessSession).filter_by(user_id=user_id, revoked=False).update({'revoked': True})
         db.commit()
         return True

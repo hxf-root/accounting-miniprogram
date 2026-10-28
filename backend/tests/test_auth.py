@@ -93,3 +93,22 @@ def test_expired_short_session_denied(client, db_session):
     user = client.post('/api/auth/register', json={'username': 'expired-session', 'password': 'pass1234'}).json()
     token = issue(db_session, user['user_id'], now=datetime(2020, 1, 1, tzinfo=timezone.utc))
     assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + token}).status_code == 401
+
+
+def test_legacy_jwt_epoch_revocation_and_new_password_login(client, db_session):
+    from datetime import datetime, timedelta, timezone
+    from jose import jwt
+    from auth import SECRET_KEY, ALGORITHM
+    from models import AccountAuthEpoch
+    user = client.post('/api/auth/register', json={'username': 'legacy-epoch', 'password': 'pass1234'}).json()
+    legacy = jwt.encode({'user_id': user['user_id'], 'username': 'legacy-epoch',
+                         'exp': datetime.now(timezone.utc) + timedelta(hours=1)}, SECRET_KEY, algorithm=ALGORITHM)
+    headers = {'Authorization': 'Bearer ' + legacy}
+    assert client.get('/api/memories', headers=headers).status_code == 200
+    db_session.add(AccountAuthEpoch(user_id=user['user_id'], epoch=1))
+    db_session.commit()
+    assert client.get('/api/memories', headers=headers).status_code == 401
+    fresh = client.post('/api/auth/login', json={'username': 'legacy-epoch', 'password': 'pass1234'}).json()['token']
+    assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + fresh}).status_code == 200
+    missing_exp = jwt.encode({'user_id': user['user_id'], 'username': 'legacy-epoch', 'auth_epoch': 1}, SECRET_KEY, algorithm=ALGORITHM)
+    assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + missing_exp}).status_code == 401
