@@ -18,8 +18,11 @@ echo "[2/4] 安装依赖..."
 cd backend
 .venv/bin/pip install -r requirements.txt -q
 
-echo "[3/4] 运行测试..."
-.venv/bin/python -m pytest tests/ -q || {
+echo "[3/4] 在隔离数据库中运行测试..."
+TEST_DIR="$(mktemp -d)"
+trap 'rm -rf "${TEST_DIR}"' EXIT
+DATABASE_URL="sqlite:///${TEST_DIR}/test.db" JWT_SECRET_KEY="test-only-not-for-production" \
+    .venv/bin/python -m pytest tests/ -q || {
     echo "⚠️  测试未通过，跳过部署"
     exit 1
 }
