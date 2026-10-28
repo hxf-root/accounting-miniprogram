@@ -2,7 +2,7 @@
 from identity.bindings import VerifiedIdentity
 from identity.wechat import WeChatExchangeError
 from main import app
-from routers.wechat_identity import config
+from routers.wechat_identity import config, rate_ip, rate_account
 
 KEY = b'example-key-for-tests-only-32-bytes-long'
 
@@ -16,6 +16,8 @@ class FakeProvider:
 
 def enable_fake_provider():
     app.dependency_overrides[config] = lambda: (FakeProvider(), KEY)
+    app.dependency_overrides[rate_ip] = lambda: None
+    app.dependency_overrides[rate_account] = lambda: None
 
 
 def register(client, name):
@@ -65,3 +67,49 @@ def test_provider_failure_and_input_validation(client):
     response = client.post('/api/auth/wechat/bind', headers=headers, json={'code': 'bad'})
     assert response.status_code == 401 and 'provider error' not in response.text
     assert client.post('/api/auth/wechat/login', json={'code': ''}).status_code == 422
+
+
+def test_login_rate_limit_runs_before_provider(client, monkeypatch):
+    from routers import wechat_identity
+    calls = []
+    class CountingProvider:
+        def exchange(self, code):
+            calls.append(code)
+            return VerifiedIdentity('wechat', 'fake-app\0' + code)
+    app.dependency_overrides[config] = lambda: (CountingProvider(), KEY)
+    monkeypatch.setattr(wechat_identity, 'client_address', lambda peer, forwarded, trusted: '8.8.8.8')
+    original_consume = wechat_identity.consume
+    monkeypatch.setattr(wechat_identity, 'consume', lambda db, **kwargs: original_consume(db, now=120, **kwargs))
+    for _ in range(20):
+        assert client.post('/api/auth/wechat/login', json={'code': 'unbound'}).status_code == 401
+    blocked = client.post('/api/auth/wechat/login', json={'code': 'unbound'})
+    assert blocked.status_code == 429
+    assert 1 <= int(blocked.headers['retry-after']) <= 60
+    assert len(calls) == 20
+
+
+def test_binding_rate_limit_and_untrusted_proxy_fail_closed(client, monkeypatch):
+    from routers import wechat_identity
+    calls = []
+    class CountingProvider:
+        def exchange(self, code):
+            calls.append(code)
+            return VerifiedIdentity('wechat', 'fake-app\0' + code)
+    app.dependency_overrides[config] = lambda: (CountingProvider(), KEY)
+    monkeypatch.setattr(wechat_identity, 'client_address', lambda peer, forwarded, trusted: '8.8.8.8')
+    original_consume = wechat_identity.consume
+    monkeypatch.setattr(wechat_identity, 'consume', lambda db, **kwargs: original_consume(db, now=120, **kwargs))
+    headers = register(client, 'rate-user')
+    for _ in range(10):
+        assert client.post('/api/auth/wechat/bind', headers=headers, json={'code': 'same'}).status_code == 200
+    blocked = client.post('/api/auth/wechat/bind', headers=headers, json={'code': 'same'})
+    assert blocked.status_code == 429 and int(blocked.headers['retry-after']) == 60
+    assert len(calls) == 10
+
+    def invalid_proxy(peer, forwarded, trusted):
+        from identity.rate_limit import UntrustedAddress
+        raise UntrustedAddress('fake-private-ip')
+    monkeypatch.setattr(wechat_identity, 'client_address', invalid_proxy)
+    result = client.post('/api/auth/wechat/login', json={'code': 'private'})
+    assert result.status_code == 503 and 'fake-private-ip' not in result.text
+    assert len(calls) == 10

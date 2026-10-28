@@ -31,6 +31,17 @@ class AccountAuthEpoch(Base):
     epoch = Column(Integer, nullable=False, default=0)
 
 
+class IdentityRateBucket(Base):
+    """Hashed fixed-window limiter state; never stores client addresses."""
+    __tablename__ = "identity_rate_buckets"
+    __table_args__ = (UniqueConstraint("scope", "key_digest", name="uq_identity_rate_bucket"),)
+    id = Column(Integer, primary_key=True)
+    scope = Column(String(32), nullable=False)
+    key_digest = Column(String(64), nullable=False)
+    window_start = Column(Integer, nullable=False, index=True)
+    attempts = Column(Integer, nullable=False)
+
+
 class AccessSession(Base):
     """Revocable opaque session; raw bearer tokens are never stored."""
     __tablename__ = "access_sessions"
