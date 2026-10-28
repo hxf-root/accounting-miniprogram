@@ -48,6 +48,39 @@ def restore_missing_token(path: Path, original: bytes):
         os.unlink(name)
 
 
+def query_coros(helper: Path, state_dir: Path, args: dict) -> dict:
+    """Caller holds the credential-directory lock; never expose provider output in errors."""
+    token_path = state_dir / 'token.json'
+    secure_path(token_path, directory=False)
+    if token_path.stat().st_size > 65536:
+        raise ValueError('credential token is unexpectedly large')
+    original_token = token_path.read_bytes()
+    cmd = [sys.executable, str(helper), '--issuer', 'https://mcpcn.coros.com',
+           '--cache-path', str(token_path),
+           '--pending-login-path', str(state_dir / 'pending-login.json'),
+           '--tool-catalog-path', str(state_dir / 'tool-catalog.json'),
+           'call-tool', '--tool', 'querySportRecords', '--arguments-json', json.dumps(args)]
+    token_removed = False
+    try:
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError('COROS request timed out') from exc
+    finally:
+        if not token_path.exists():
+            token_removed = True
+            restore_missing_token(token_path, original_token)
+    if token_removed:
+        raise RuntimeError('COROS credentials were removed; authorization must be checked')
+    secure_path(token_path, directory=False)
+    if result.returncode:
+        raise RuntimeError('COROS request failed; check authorization and connectivity')
+    try:
+        return json.loads(result.stdout)
+    except ValueError as exc:
+        raise RuntimeError('COROS returned invalid JSON') from exc
+
+
 def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100, today=None,
              recover: bool = False):
     from integrations.source_control import acquire, release
@@ -117,35 +150,7 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
                 # race with a request, but prevents the subsequent commit.
                 renew(db.get_bind(), user_id, lease_token, generation)
                 args = {'startDate': start.strftime('%Y%m%d'), 'endDate': end.strftime('%Y%m%d'), 'limit': limit}
-                cmd = [sys.executable, str(helper), '--issuer', 'https://mcpcn.coros.com',
-                   '--cache-path', str(state_dir / 'token.json'),
-                   '--pending-login-path', str(state_dir / 'pending-login.json'),
-                   '--tool-catalog-path', str(state_dir / 'tool-catalog.json'),
-                   'call-tool', '--tool', 'querySportRecords', '--arguments-json', json.dumps(args)]
-                secure_path(token_path, directory=False)
-                if token_path.stat().st_size > 65536:
-                    raise ValueError('credential token is unexpectedly large')
-                original_token = token_path.read_bytes()
-                token_removed = False
-                try:
-                    try:
-                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
-                    except subprocess.TimeoutExpired as exc:
-                        raise RuntimeError('COROS request timed out') from exc
-                finally:
-                    if not token_path.exists():
-                        token_removed = True
-                        restore_missing_token(token_path, original_token)
-                if token_removed:
-                    raise RuntimeError('COROS credentials were removed; authorization must be checked')
-                secure_path(token_path, directory=False)
-                if result.returncode:
-                    # Do not log output, which may contain sensitive data or credentials.
-                    raise RuntimeError('COROS request failed; check authorization and connectivity')
-                try:
-                    response = json.loads(result.stdout)
-                except ValueError as exc:
-                    raise RuntimeError('COROS returned invalid JSON') from exc
+                response = query_coros(helper, state_dir, args)
                 if len(parse_sport_records(response)) >= limit:
                     if end == start:
                         raise CorosResponseError('Single-day result may be truncated')
