@@ -18,11 +18,13 @@ function getCode() {
 }
 
 async function bind() {
-  if (!api.getToken()) throw new Error('请先连接已有账户')
+  const originalToken = api.getToken()
+  if (!originalToken) throw new Error('请先连接已有账户')
   const version = generation
   const code = await getCode()
+  if (version !== generation || api.getToken() !== originalToken) throw new Error('操作已取消')
   await api.bindWechat(code)
-  if (version !== generation) throw new Error('操作已取消')
+  if (version !== generation || api.getToken() !== originalToken) throw new Error('操作已取消')
   wx.setStorageSync(AUTO_KEY, true)
 }
 

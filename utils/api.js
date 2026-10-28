@@ -44,7 +44,7 @@ function request(method, path, data, options = {}) {
       success(res) {
         if (res.statusCode === 401) {
           // 凭据失效时清除凭据，由页面选择如何提示。
-          if (!options.preserveAuthOn401) clearAuth()
+          if (!options.preserveAuthOn401 && getToken() === token) clearAuth()
           reject(new Error('登录已过期'))
           return
         }

@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const identity = require('../../utils/wechatIdentity.js')
 
 // 体验版：这些内容是虚构的示例，不代表用户的真实记录。
 const EXAMPLES = [
@@ -48,16 +49,18 @@ Page({
   },
 
   onShow() {
-    this.loadMemories()
+    return identity.restore().then(() => this.loadMemories())
   },
 
-  loadMemories() {
+  loadMemories(allowRestore = true) {
     if (!api.getToken()) {
       this.setMemories(EXAMPLES, 'demo', '尚未连接私人回忆 · 以下内容为示例')
       return Promise.resolve()
     }
+    const requestedToken = api.getToken()
     this.setData({ status: '正在寻找你的回忆 · 以下内容为示例' })
     return api.getMemories().then(items => {
+      if (api.getToken() !== requestedToken) return
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       if (!items.length) {
         this.setMemories(EXAMPLES, 'demo', '还没有真实回忆 · 以下内容为示例')
@@ -66,6 +69,10 @@ Page({
       const memories = items.map(toMemory)
       this.setMemories(memories, 'live', '你的私人回忆', items.length === 50)
     }).catch(() => {
+      if (allowRestore && !api.getToken() && identity.enabled()) {
+        return identity.restore().then(ok => ok ? this.loadMemories(false) : this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例'))
+      }
+      if (api.getToken() && api.getToken() !== requestedToken) return
       this.setMemories(EXAMPLES, 'demo', '暂时无法连接回忆 · 以下内容为示例')
     })
   },
@@ -77,8 +84,10 @@ Page({
   loadMore() {
     if (this.data.mode !== 'live' || !this.data.hasMore || this.data.loadingMore) return Promise.resolve()
     const cursor = this.data.nextCursor
+    const requestedToken = api.getToken()
     this.setData({ loadingMore: true, loadMoreError: '' })
     return api.getMemories(cursor).then(items => {
+      if (api.getToken() !== requestedToken) return
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       const incoming = items.map(toMemory)
       const seen = new Set(this.data.memories.map(item => item.id))
@@ -91,7 +100,10 @@ Page({
       const memories = this.data.memories.concat(older)
       this.setData({ memories, nextCursor: incoming.length ? incoming[incoming.length - 1] : cursor, hasMore: items.length === 50,
         loadingMore: false, countLabel: `已加载 ${memories.length} 条` })
-    }).catch(() => this.setData({ loadingMore: false, loadMoreError: '加载失败，请重试' }))
+    }).catch(() => {
+      if (api.getToken() !== requestedToken) return
+      this.setData({ loadingMore: false, loadMoreError: '加载失败，请重试' })
+    })
   },
 
   selectMemory(event) {

@@ -17,6 +17,15 @@ const api = require('../utils/api.js')
   assert.equal(received.header.Authorization, 'Bearer existing-account-token')
   await assert.rejects(api.getMemories())
   assert.equal(api.getToken(), undefined)
+  let delayed
+  wx.request = options => { delayed = options }
+  api.setToken('old-token')
+  const oldRequest = api.getMemories()
+  api.setToken('new-token')
+  delayed.success({ statusCode: 401, data: {} })
+  await assert.rejects(oldRequest)
+  assert.equal(api.getToken(), 'new-token')
+  wx.request = options => { received = options; options.success({ statusCode, data: {} }) }
   statusCode = 200
   await api.loginWechat('fake-code')
   assert.deepEqual(received.data, { code: 'fake-code' })

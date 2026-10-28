@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const identity = require('../../utils/wechatIdentity.js')
 const { formatDate } = require('../../utils/helpers.js')
 
 Page({
@@ -6,6 +7,8 @@ Page({
     statusBarHeight: 0,
     userName: '',
     hasAccount: false,
+    wechatEnabled: false,
+    identityBusy: false,
 
   },
 
@@ -16,7 +19,11 @@ Page({
 
   onShow() {
     const user = api.getUser()
-    this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()) })
+    this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()), wechatEnabled: identity.enabled() })
+    identity.restore().then(() => {
+      const current = api.getUser()
+      this.setData({ userName: current.username || '私人空间', hasAccount: Boolean(api.getToken()), wechatEnabled: identity.enabled() })
+    })
   },
 
   // ========== 数据导出 ==========
@@ -68,14 +75,45 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' })
   },
 
+  async bindWechat() {
+    if (this.data.identityBusy) return
+    this.setData({ identityBusy: true })
+    try {
+      await identity.bind()
+      this.setData({ wechatEnabled: identity.enabled() })
+      wx.showToast({ title: '微信已连接', icon: 'success' })
+    } catch (_) {
+      wx.showToast({ title: '连接失败，请稍后再试', icon: 'none' })
+    } finally { this.setData({ identityBusy: false }) }
+  },
+
+  unbindWechat() {
+    if (this.data.identityBusy) return
+    wx.showModal({
+      title: '解除微信连接',
+      content: '解除后将退出当前账户，并关闭本机自动识别。',
+      success: async result => {
+        if (!result.confirm) return
+        this.setData({ identityBusy: true })
+        try {
+          await identity.unbind()
+          wx.reLaunch({ url: '/pages/main/main' })
+        } catch (_) {
+          wx.showToast({ title: '解除失败，请稍后再试', icon: 'none' })
+        } finally { this.setData({ identityBusy: false }) }
+      },
+    })
+  },
+
   // ========== 退出登录 ==========
 
   onLogout() {
     wx.showModal({
       title: '退出登录',
-      content: '确定要退出当前账号吗？',
+      content: '退出后将关闭本机自动识别，可重新连接账户。',
       success(res) {
         if (res.confirm) {
+          identity.stopAuto()
           api.clearAuth()
           wx.reLaunch({ url: '/pages/main/main' })
         }

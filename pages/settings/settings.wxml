@@ -28,6 +28,18 @@
       <text class="action-label">连接已有账户以导出旧数据</text>
     </view>
 
+    <view wx:if="{{hasAccount}}" class="section-title">微信连接</view>
+    <view wx:if="{{hasAccount}}" class="glass-card">
+      <view wx:if="{{!wechatEnabled}}" class="action-row" bindtap="bindWechat">
+        <view class="action-text-wrap"><text class="action-label">连接微信</text><text class="action-desc">连接后可尝试自动进入私人回忆</text></view>
+        <text class="action-arrow">›</text>
+      </view>
+      <view wx:else class="action-row" bindtap="unbindWechat">
+        <view class="action-text-wrap"><text class="action-label">解除微信连接</text><text class="action-desc">解除后关闭自动识别</text></view>
+        <text class="action-arrow">›</text>
+      </view>
+    </view>
+
     <!-- ===== 应用信息 ===== -->
     <view class="section-title">关于</view>
     <view class="glass-card about-card">
