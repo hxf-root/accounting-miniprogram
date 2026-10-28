@@ -24,6 +24,16 @@ class ExternalIdentity(Base):
     subject_digest = Column(String(64), nullable=False)
 
 
+class AccessSession(Base):
+    """Revocable opaque session; raw bearer tokens are never stored."""
+    __tablename__ = "access_sessions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    token_digest = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(String(32), nullable=False)
+    revoked = Column(Boolean, nullable=False, default=False)
+
+
 class Memory(Base):
     __tablename__ = "memories"
     __table_args__ = (
