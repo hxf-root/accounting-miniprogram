@@ -82,12 +82,18 @@ def query_coros(helper: Path, state_dir: Path, args: dict) -> dict:
 
 
 def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100, today=None,
-             recover: bool = False):
+             recover: bool = False, backfill_start: date | None = None, backfill_end: date | None = None):
     from integrations.source_control import acquire, release
     from models import User
     from sqlalchemy.orm import Session
     if not 1 <= days <= 30 or not 2 <= limit <= 100:
         raise ValueError('days must be 1–30 and limit 2–100')
+    if (backfill_start is None) != (backfill_end is None):
+        raise ValueError('backfill requires both start and end dates')
+    if backfill_start is not None and (not isinstance(backfill_start, date) or isinstance(backfill_start, datetime)
+            or not isinstance(backfill_end, date) or isinstance(backfill_end, datetime)
+            or backfill_start > backfill_end or (backfill_end - backfill_start).days >= 366):
+        raise ValueError('backfill interval must cover at most 366 days')
     if not helper.is_absolute() or not helper.is_file():
         raise ValueError('an absolute path to the COROS helper is required')
     if not state_dir.is_absolute():
@@ -100,7 +106,8 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
     token, generation = acquire(db.get_bind(), user_id)
     try:
         return _run_sync(db, user_id, helper, state_dir, token, generation,
-                         days=days, limit=limit, today=today, recover=recover)
+                         days=days, limit=limit, today=today, recover=recover,
+                         backfill_start=backfill_start, backfill_end=backfill_end)
     finally:
         # A failed release leaves only an expiring lease; never release another
         # worker's newer lease. Preserve an in-flight error if cleanup also fails.
@@ -112,7 +119,8 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
                 raise RuntimeError('source lease release failed') from None
 
 
-def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, limit, today, recover):
+def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, limit, today, recover,
+              backfill_start, backfill_end):
     from integrations.coros_sync import import_sport_records
     from integrations.coros_records import CorosResponseError, parse_sport_records
     from integrations.source_control import assert_lease, renew
@@ -134,18 +142,23 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
                 state = reader.query(SyncState).filter_by(user_id=user_id, source='coros').first()
                 previous_success = state.last_success_date if state else None
             start = today - timedelta(days=days - 1)
+            target_end = today
             if previous_success:
                 last_success = date.fromisoformat(previous_success)
                 if last_success > today:
                     raise RuntimeError('sync checkpoint is in the future')
                 start = min(start, last_success)
-            if (today - start).days >= 30 and not recover:
+            if backfill_start is not None:
+                if not previous_success or backfill_end > last_success:
+                    raise ValueError('backfill must end at or before an existing checkpoint')
+                start, target_end = backfill_start, backfill_end
+            if (target_end - start).days >= 30 and not recover:
                 raise RuntimeError('sync gap exceeds 30 days; manual recovery is required')
-            if (today - start).days >= 366:
+            if (target_end - start).days >= 366:
                 raise RuntimeError('sync gap exceeds 366 days; manual investigation is required')
             total = {'received': 0, 'inserted': 0, 'suppressed': 0, 'segments': 0}
-            end = min(start + timedelta(days=29), today)
-            while start <= today:
+            end = min(start + timedelta(days=29), target_end)
+            while start <= target_end:
                 # Network calls happen outside the DB write lock. Pausing may
                 # race with a request, but prevents the subsequent commit.
                 renew(db.get_bind(), user_id, lease_token, generation)
@@ -163,16 +176,17 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
                     summary = import_sport_records(writer, user_id, response, requested_limit=limit, commit=False,
                                                    start_date=start, end_date=end)
                     checkpoint = writer.query(SyncState).filter_by(user_id=user_id, source='coros').first()
-                    if checkpoint is None:
-                        writer.add(SyncState(user_id=user_id, source='coros', last_success_date=end.isoformat()))
-                    else:
-                        checkpoint.last_success_date = end.isoformat()
+                    if backfill_start is None:
+                        if checkpoint is None:
+                            writer.add(SyncState(user_id=user_id, source='coros', last_success_date=end.isoformat()))
+                        else:
+                            checkpoint.last_success_date = end.isoformat()
                     writer.commit()
                 for key in ("received", "inserted", "suppressed"):
                     total[key] += summary[key]
                 total["segments"] += 1
                 start = end + timedelta(days=1)
-                end = min(start + timedelta(days=29), today)
+                end = min(start + timedelta(days=29), target_end)
             return total
     except BlockingIOError as exc:
         raise RuntimeError('another sync is already running') from exc
@@ -216,13 +230,16 @@ def main():
     parser.add_argument('--days', type=int, default=7)
     parser.add_argument('--limit', type=int, default=100)
     parser.add_argument('--recover', action='store_true', help='recover a gap longer than 30 days in bounded segments')
+    parser.add_argument('--backfill-start', type=date.fromisoformat, help='historical interval start (YYYY-MM-DD)')
+    parser.add_argument('--backfill-end', type=date.fromisoformat, help='historical interval end (YYYY-MM-DD)')
     args = parser.parse_args()
     if not os.environ.get('DATABASE_URL'):
         parser.error('DATABASE_URL must be explicitly set')
     from database import SessionLocal
     try:
         with SessionLocal() as db:
-            result = run_sync(db, args.user_id, args.helper, args.state_dir, days=args.days, limit=args.limit, recover=args.recover)
+            result = run_sync(db, args.user_id, args.helper, args.state_dir, days=args.days, limit=args.limit,
+                              recover=args.recover, backfill_start=args.backfill_start, backfill_end=args.backfill_end)
         print(json.dumps(result))
         return 0
     except Exception as exc:

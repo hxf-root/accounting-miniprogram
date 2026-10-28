@@ -84,6 +84,69 @@ def test_full_single_day_fails_without_writing(db_session, config):
     assert db_session.query(SyncState).count() == 0
 
 
+def test_backfill_retries_without_regressing_checkpoint(db_session, config):
+    from datetime import datetime, timezone
+    from models import Memory, SyncState
+    helper, state, _ = config
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
+    db_session.add(SyncState(user_id=1, source='coros', last_success_date='2026-10-27'))
+    db_session.commit()
+    calls = []
+    def provider(cmd, **kwargs):
+        args = json.loads(cmd[-1])
+        calls.append((args['startDate'], args['endDate']))
+        selected = [(8,3,1),(9,3,2)]
+        selected = [x for x in selected if args['startDate'] <= f'2026{x[0]:02}{x[1]:02}' <= args['endDate']]
+        lines = [f'Sport Records ({len(selected)} records)']
+        for index, (month, day, ident) in enumerate(selected,1):
+            stamp = int(datetime(2026,month,day,10,tzinfo=timezone.utc).timestamp())
+            lines.append(f'{index}. Synthetic Run\n  Time Window: startTimestamp={stamp}\n  LabelId: {ident} | SportType: 100')
+        return SimpleNamespace(returncode=0, stdout=json.dumps({'content':[{'type':'text','text':json.dumps('\n'.join(lines))}], 'isError':False}))
+    def fail_second(cmd, **kwargs):
+        if calls:
+            return SimpleNamespace(returncode=1, stdout='private')
+        return provider(cmd, **kwargs)
+    params = dict(today=date(2026,10,27), recover=True, backfill_start=date(2026,8,1), backfill_end=date(2026,9,15))
+    with patch('coros_worker.subprocess.run', side_effect=fail_second):
+        with pytest.raises(RuntimeError):
+            run_sync(db_session, 1, helper, state, **params)
+    db_session.expire_all()
+    assert db_session.query(Memory).count() == 1
+    assert db_session.query(SyncState).one().last_success_date == '2026-10-27'
+    calls.clear()
+    with patch('coros_worker.subprocess.run', side_effect=provider):
+        summary = run_sync(db_session, 1, helper, state, **params)
+    db_session.expire_all()
+    assert calls == [('20260801','20260830'),('20260831','20260915')]
+    assert summary['received'] == 2 and summary['inserted'] == 1
+    assert db_session.query(Memory).count() == 2
+    assert db_session.query(SyncState).one().last_success_date == '2026-10-27'
+
+
+def test_backfill_rejects_unsafe_intervals_before_provider_call(db_session, config):
+    from models import SyncState
+    helper, state, _ = config
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
+    db_session.add(SyncState(user_id=1, source='coros', last_success_date='2026-10-20'))
+    db_session.commit()
+    with patch('coros_worker.subprocess.run') as run:
+        for extra in (dict(backfill_start=date(2025,1,1)),
+                      dict(backfill_start=date(2025,1,1),backfill_end=date(2026,1,2)),
+                      dict(backfill_start=date(2026,10,19),backfill_end=date(2026,10,21))):
+            with pytest.raises(ValueError):
+                run_sync(db_session, 1, helper, state, today=date(2026,10,27), recover=True, **extra)
+        run.assert_not_called()
+    db_session.query(SyncState).delete()
+    db_session.commit()
+    with patch('coros_worker.subprocess.run') as run:
+        with pytest.raises(ValueError):
+            run_sync(db_session, 1, helper, state, today=date(2026,10,27), recover=True,
+                     backfill_start=date(2026,8,1), backfill_end=date(2026,9,1))
+        run.assert_not_called()
+
+
 def test_worker_rejects_insecure_credentials_and_unknown_user(db_session, config):
     helper, state, token = config
     token.chmod(0o644)
