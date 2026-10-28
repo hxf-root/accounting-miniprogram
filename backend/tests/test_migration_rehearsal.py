@@ -81,6 +81,40 @@ def test_incompatible_schema_and_unknown_version_fail_closed(tmp_path):
     assert not (tmp_path / 'bad-version').exists()
 
 
+def test_known_legacy_indexes_are_created_without_changing_rows(tmp_path):
+    source = tmp_path / 'source.db'
+    manifest = json.loads(migration.MANIFEST.read_text())
+    with legacy(source) as db:
+        for entry in manifest['tables']:
+            if entry['table'] not in ('bills', 'categories', 'fitness_records'):
+                continue
+            for statement in entry['statements']:
+                if any(name in statement for name in migration.LEGACY_OPTIONAL_INDEXES):
+                    continue
+                db.execute(statement)
+        db.execute("INSERT INTO bills(id,user_id,type,amount,category_id,category_name,date,time) VALUES (1,1,'expense',12.5,1,'test','2026-01-01','10:00')")
+        db.execute("INSERT INTO categories(id,user_id,type,name) VALUES (1,1,'expense','test')")
+        db.execute("INSERT INTO fitness_records(id,user_id,exercise_type,duration_minutes,date,time) VALUES (1,1,'run',30,'2026-01-01','10:00')")
+        db.commit()
+        before = {t: db.execute('SELECT * FROM ' + t).fetchall() for t in ('bills', 'categories', 'fitness_records')}
+        migration.prepare(source, tmp_path / 'stage-indexes')
+        assert not migration.LEGACY_OPTIONAL_INDEXES.intersection(migration._objects(db))
+    with sqlite3.connect(tmp_path / 'stage-indexes' / 'migrated.db') as result:
+        assert migration.LEGACY_OPTIONAL_INDEXES.issubset(migration._objects(result))
+        assert {t: result.execute('SELECT * FROM ' + t).fetchall() for t in before} == before
+    assert schema_check.check(tmp_path / 'stage-indexes' / 'migrated.db') == []
+
+
+def test_other_missing_indexes_still_fail_closed(tmp_path):
+    source = tmp_path / 'source.db'
+    with legacy(source) as db:
+        db.execute('DROP INDEX ix_users_username')
+        db.commit()
+    with pytest.raises(ValueError):
+        migration.prepare(source, tmp_path / 'unsupported')
+    assert not (tmp_path / 'unsupported').exists()
+
+
 def test_failure_rolls_back_and_does_not_remove_existing_folder(tmp_path, monkeypatch):
     source = tmp_path / 'source.db'
     with legacy(source) as db:

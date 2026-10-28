@@ -17,6 +17,9 @@ from urllib.parse import quote
 MANIFEST = Path(__file__).resolve().parent / 'migrations' / '001_initial_schema.json'
 VERSION_SQL = ('CREATE TABLE baobu_schema_versions '
                '(version INTEGER NOT NULL PRIMARY KEY, checksum TEXT NOT NULL)')
+# Known additive indexes absent in the legacy accounting schema. Never infer
+# that missing unique or arbitrary indexes are safe to create.
+LEGACY_OPTIONAL_INDEXES = frozenset({'ix_bills_user_date', 'ix_categories_user_type', 'ix_fitness_user_date'})
 
 
 def _objects(db):
@@ -76,12 +79,19 @@ def _upgrade(db):
                 raise ValueError('existing schema differs from migration baseline')
         elif table in names | {'baobu_schema_versions'} and kind in ('index', 'trigger'):
             raise ValueError('unexpected index or trigger on application table')
+    missing_additive_indexes = set()
     for entry in manifest['tables']:
         name = entry['table']
         if name in objects:
             required = {key for key, obj in baseline.items() if obj[1] == name}
-            if not required.issubset(objects):
+            missing = required - objects.keys()
+            if already_versioned or not missing.issubset(LEGACY_OPTIONAL_INDEXES):
+                if missing:
+                    raise ValueError('existing application table lacks required indexes')
+            if any(baseline[index][0] != 'index' or not baseline[index][2].startswith('CREATE INDEX ')
+                   for index in missing):
                 raise ValueError('existing application table lacks required indexes')
+            missing_additive_indexes.update(missing)
         elif already_versioned:
             raise ValueError('versioned database lacks application table')
 
@@ -91,6 +101,8 @@ def _upgrade(db):
             if entry['table'] not in objects:
                 for statement in entry['statements']:
                     _execute(db, statement)
+        for name in sorted(missing_additive_indexes):
+            _execute(db, baseline[name][2])
         if not already_versioned:
             _execute(db, VERSION_SQL)
             db.execute('INSERT INTO baobu_schema_versions(version, checksum) VALUES (?, ?)', (1, checksum))

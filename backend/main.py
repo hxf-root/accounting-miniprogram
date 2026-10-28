@@ -146,4 +146,5 @@ def health():
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8089"))
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    # Production must not reload on repository or private-file changes.
+    uvicorn.run("main:app", host=host, port=port, reload=False)
