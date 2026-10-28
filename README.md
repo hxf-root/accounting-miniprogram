@@ -16,7 +16,7 @@
 
 ## 本地运行与测试
 
-后端依赖在 `backend/requirements.txt`。应用导入及启动不自动创建或迁移数据库：对**新的、绝对路径**的 SQLite 文件，可使用 `python backend/init_empty_db.py --database /absolute/path/to/new.db` 创建空库；目标文件已存在时工具拒绝操作。已有数据库的升级必须另行设计并演练迁移，不应使用此命令。
+后端依赖在 `backend/requirements.txt`。应用导入及启动不自动创建或迁移数据库：对**新的、绝对路径**的 SQLite 文件，可使用 `python backend/init_empty_db.py --database /absolute/path/to/new.db` 创建空库；目标文件已存在时工具拒绝操作。已有数据库不能使用此命令。版本 1 的有限范围离线迁移副本工具及其限制见[数据库迁移演练](docs/时间长河/数据库迁移演练.md)，不能直接用于生产切换。
 
 在单独虚拟环境安装依赖后，设置 `DATABASE_URL`、`JWT_SECRET_KEY` 等必要环境变量，再从 `backend` 目录运行服务。测试使用虚构数据；pytest 测试夹具在导入应用前强制设置临时数据库与测试密钥，不能用来检验真实服务环境。
 

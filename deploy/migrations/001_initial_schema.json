@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "table": "access_sessions",
+      "statements": [
+        "CREATE TABLE access_sessions (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\ttoken_digest VARCHAR(64) NOT NULL, \n\texpires_at VARCHAR(32) NOT NULL, \n\trevoked BOOLEAN NOT NULL, \n\tPRIMARY KEY (id)\n)",
+        "CREATE UNIQUE INDEX ix_access_sessions_token_digest ON access_sessions (token_digest)",
+        "CREATE INDEX ix_access_sessions_user_id ON access_sessions (user_id)"
+      ]
+    },
+    {
+      "table": "account_auth_epochs",
+      "statements": [
+        "CREATE TABLE account_auth_epochs (\n\tuser_id INTEGER NOT NULL, \n\tepoch INTEGER NOT NULL, \n\tPRIMARY KEY (user_id)\n)"
+      ]
+    },
+    {
+      "table": "bills",
+      "statements": [
+        "CREATE TABLE bills (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\ttype VARCHAR(10) NOT NULL, \n\tamount FLOAT NOT NULL, \n\tcategory_id INTEGER NOT NULL, \n\tcategory_name VARCHAR(50) NOT NULL, \n\tpayment_method VARCHAR(20), \n\tremark TEXT, \n\tdate VARCHAR(10) NOT NULL, \n\ttime VARCHAR(5) NOT NULL, \n\tcreated_at DATETIME, \n\tPRIMARY KEY (id)\n)",
+        "CREATE INDEX ix_bills_id ON bills (id)",
+        "CREATE INDEX ix_bills_user_date ON bills (user_id, date)",
+        "CREATE INDEX ix_bills_user_id ON bills (user_id)"
+      ]
+    },
+    {
+      "table": "categories",
+      "statements": [
+        "CREATE TABLE categories (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\ttype VARCHAR(10) NOT NULL, \n\tname VARCHAR(50) NOT NULL, \n\ticon VARCHAR(10), \n\tcolor VARCHAR(20), \n\tis_custom BOOLEAN, \n\tsort_order INTEGER, \n\tPRIMARY KEY (id)\n)",
+        "CREATE INDEX ix_categories_id ON categories (id)",
+        "CREATE INDEX ix_categories_user_id ON categories (user_id)",
+        "CREATE INDEX ix_categories_user_type ON categories (user_id, type)"
+      ]
+    },
+    {
+      "table": "external_identities",
+      "statements": [
+        "CREATE TABLE external_identities (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tprovider VARCHAR(32) NOT NULL, \n\tsubject_digest VARCHAR(64) NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_external_subject UNIQUE (provider, subject_digest), \n\tCONSTRAINT uq_external_user_provider UNIQUE (user_id, provider)\n)",
+        "CREATE INDEX ix_external_identities_user_id ON external_identities (user_id)"
+      ]
+    },
+    {
+      "table": "fitness_records",
+      "statements": [
+        "CREATE TABLE fitness_records (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\texercise_type VARCHAR(50) NOT NULL, \n\tduration_minutes INTEGER NOT NULL, \n\tcalories INTEGER, \n\tdate VARCHAR(10) NOT NULL, \n\ttime VARCHAR(5) NOT NULL, \n\tnote TEXT, \n\tcreated_at DATETIME, \n\tPRIMARY KEY (id)\n)",
+        "CREATE INDEX ix_fitness_records_id ON fitness_records (id)",
+        "CREATE INDEX ix_fitness_records_user_id ON fitness_records (user_id)",
+        "CREATE INDEX ix_fitness_user_date ON fitness_records (user_id, date)"
+      ]
+    },
+    {
+      "table": "identity_rate_buckets",
+      "statements": [
+        "CREATE TABLE identity_rate_buckets (\n\tid INTEGER NOT NULL, \n\tscope VARCHAR(32) NOT NULL, \n\tkey_digest VARCHAR(64) NOT NULL, \n\twindow_start INTEGER NOT NULL, \n\tattempts INTEGER NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_identity_rate_bucket UNIQUE (scope, key_digest)\n)",
+        "CREATE INDEX ix_identity_rate_buckets_window_start ON identity_rate_buckets (window_start)"
+      ]
+    },
+    {
+      "table": "memories",
+      "statements": [
+        "CREATE TABLE memories (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tsource VARCHAR(32) NOT NULL, \n\tsource_id VARCHAR(200), \n\toccurred_at VARCHAR(32) NOT NULL, \n\ttext TEXT NOT NULL, \n\thidden BOOLEAN NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_memory_source UNIQUE (user_id, source, source_id)\n)",
+        "CREATE INDEX ix_memories_user_id ON memories (user_id)",
+        "CREATE INDEX ix_memories_user_occurred ON memories (user_id, occurred_at)"
+      ]
+    },
+    {
+      "table": "memory_suppressions",
+      "statements": [
+        "CREATE TABLE memory_suppressions (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tsource VARCHAR(32) NOT NULL, \n\tsource_id VARCHAR(200) NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_memory_suppression UNIQUE (user_id, source, source_id)\n)",
+        "CREATE INDEX ix_memory_suppressions_user_id ON memory_suppressions (user_id)"
+      ]
+    },
+    {
+      "table": "settings",
+      "statements": [
+        "CREATE TABLE settings (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tmonthly_budget FLOAT, \n\tfitness_daily_goal_minutes INTEGER, \n\tfitness_daily_goal_calories INTEGER, \n\tupdated_at DATETIME, \n\tPRIMARY KEY (id)\n)",
+        "CREATE INDEX ix_settings_id ON settings (id)",
+        "CREATE UNIQUE INDEX ix_settings_user_id ON settings (user_id)"
+      ]
+    },
+    {
+      "table": "source_controls",
+      "statements": [
+        "CREATE TABLE source_controls (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tsource VARCHAR(32) NOT NULL, \n\tstatus VARCHAR(16) NOT NULL, \n\tgeneration INTEGER NOT NULL, \n\tlease_token VARCHAR(64), \n\tlease_expires_at INTEGER, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_source_control_user_source UNIQUE (user_id, source), \n\tCONSTRAINT ck_source_control_source CHECK (source = 'coros'), \n\tCONSTRAINT ck_source_control_status CHECK (status IN ('active', 'paused')), \n\tCONSTRAINT ck_source_control_generation CHECK (generation >= 0), \n\tCONSTRAINT ck_source_control_lease_pair CHECK ((lease_token IS NULL AND lease_expires_at IS NULL) OR (lease_token IS NOT NULL AND lease_expires_at IS NOT NULL))\n)",
+        "CREATE INDEX ix_source_controls_user_id ON source_controls (user_id)"
+      ]
+    },
+    {
+      "table": "sync_states",
+      "statements": [
+        "CREATE TABLE sync_states (\n\tid INTEGER NOT NULL, \n\tuser_id INTEGER NOT NULL, \n\tsource VARCHAR(32) NOT NULL, \n\tlast_success_date VARCHAR(10) NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_sync_state_user_source UNIQUE (user_id, source)\n)",
+        "CREATE INDEX ix_sync_states_user_id ON sync_states (user_id)"
+      ]
+    },
+    {
+      "table": "users",
+      "statements": [
+        "CREATE TABLE users (\n\tid INTEGER NOT NULL, \n\tusername VARCHAR(50) NOT NULL, \n\tpassword_hash VARCHAR(128) NOT NULL, \n\tcreated_at DATETIME, \n\tPRIMARY KEY (id)\n)",
+        "CREATE INDEX ix_users_id ON users (id)",
+        "CREATE UNIQUE INDEX ix_users_username ON users (username)"
+      ]
+    }
+  ]
+}
