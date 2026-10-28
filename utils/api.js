@@ -30,7 +30,7 @@ function clearAuth() {
 }
 
 // 通用请求
-function request(method, path, data) {
+function request(method, path, data, options = {}) {
   return new Promise((resolve, reject) => {
     const token = getToken()
     const header = { 'Content-Type': 'application/json' }
@@ -44,7 +44,7 @@ function request(method, path, data) {
       success(res) {
         if (res.statusCode === 401) {
           // 凭据失效时清除凭据，由页面选择如何提示。
-          clearAuth()
+          if (!options.preserveAuthOn401) clearAuth()
           reject(new Error('登录已过期'))
           return
         }
@@ -67,6 +67,11 @@ module.exports = {
     request('POST', '/api/auth/login', { username, password }),
   register: (username, password) =>
     request('POST', '/api/auth/register', { username, password }),
+
+  // 微信身份：此实验接口由服务器决定是否启用。
+  bindWechat: (code) => request('POST', '/api/auth/wechat/bind', { code }, { preserveAuthOn401: true }),
+  loginWechat: (code) => request('POST', '/api/auth/wechat/login', { code }, { preserveAuthOn401: true }),
+  unbindWechat: () => request('DELETE', '/api/auth/wechat/bind'),
 
   // 账单
   getBills: (params) => request('GET', '/api/bills?' + obj2query(params)),
