@@ -31,6 +31,14 @@ def test_convert_utc_and_stable_id():
                        'text': 'Outdoor Run — 2026-10-26', 'sport_type': 100}]
 
 
+def test_summary_retains_only_supported_metrics():
+    enriched = SAMPLE.replace('   Time Window:', '   Duration: 2:12:38 | Distance: 12.03 km\n   Location: private place\n   Time Window:')
+    entry = parse_sport_records(response(enriched))[0]
+    assert entry['text'] == 'Outdoor Run — 2026-10-26\n时长 2:12:38 · 距离 12.03 km'
+    malformed = SAMPLE.replace('   Time Window:', '   Duration: 2:99:99 | Distance: -4 km\n   Time Window:')
+    assert parse_sport_records(response(malformed))[0]['text'] == 'Outdoor Run — 2026-10-26'
+
+
 def test_empty_result_and_fail_closed():
     assert parse_sport_records(response('Sport Records (0 records)\n')) == []
     for invalid in (SAMPLE.replace('LabelId:', 'Missing:'), SAMPLE.replace('(1 records)', '(2 records)')):

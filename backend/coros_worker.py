@@ -81,6 +81,7 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
 
 def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, limit, today, recover):
     from integrations.coros_sync import import_sport_records
+    from integrations.coros_records import CorosResponseError, parse_sport_records
     from integrations.source_control import assert_lease, renew
     from sqlalchemy import text
     from sqlalchemy.orm import Session
@@ -110,11 +111,11 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
             if (today - start).days >= 366:
                 raise RuntimeError('sync gap exceeds 366 days; manual investigation is required')
             total = {'received': 0, 'inserted': 0, 'suppressed': 0, 'segments': 0}
+            end = min(start + timedelta(days=29), today)
             while start <= today:
                 # Network calls happen outside the DB write lock. Pausing may
                 # race with a request, but prevents the subsequent commit.
                 renew(db.get_bind(), user_id, lease_token, generation)
-                end = min(start + timedelta(days=29), today)
                 args = {'startDate': start.strftime('%Y%m%d'), 'endDate': end.strftime('%Y%m%d'), 'limit': limit}
                 cmd = [sys.executable, str(helper), '--issuer', 'https://mcpcn.coros.com',
                    '--cache-path', str(state_dir / 'token.json'),
@@ -145,6 +146,12 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
                     response = json.loads(result.stdout)
                 except ValueError as exc:
                     raise RuntimeError('COROS returned invalid JSON') from exc
+                if len(parse_sport_records(response)) >= limit:
+                    if end == start:
+                        raise CorosResponseError('Single-day result may be truncated')
+                    # Retry the first half; never commit a potentially incomplete range.
+                    end = start + timedelta(days=(end - start).days // 2)
+                    continue
                 with Session(bind=db.get_bind()) as writer:
                     writer.execute(text('BEGIN IMMEDIATE'))
                     assert_lease(writer, user_id, lease_token, generation)
@@ -160,6 +167,7 @@ def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, 
                     total[key] += summary[key]
                 total["segments"] += 1
                 start = end + timedelta(days=1)
+                end = min(start + timedelta(days=29), today)
             return total
     except BlockingIOError as exc:
         raise RuntimeError('another sync is already running') from exc

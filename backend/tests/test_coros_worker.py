@@ -40,6 +40,50 @@ def test_worker_calls_read_only_tool_and_deduplicates(db_session, config):
         assert 'refresh_token' not in json.dumps(args)
 
 
+def test_full_range_splits_before_writing_and_keeps_checkpoint(db_session, config):
+    from datetime import datetime, timezone
+    from models import Memory, SyncState
+    helper, state, _ = config
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
+    db_session.commit()
+    requests = []
+    def provider(cmd, **kwargs):
+        args = json.loads(cmd[-1])
+        requests.append((args['startDate'], args['endDate']))
+        selected = [d for d in (26, 27) if args['startDate'] <= f'202610{d}' <= args['endDate']]
+        lines = [f'Sport Records ({len(selected)} records)']
+        for i, day in enumerate(selected, 1):
+            stamp = int(datetime(2026, 10, day, 10, tzinfo=timezone.utc).timestamp())
+            lines.append(f'{i}. Synthetic Run — 2026-10-{day}\n   Time Window: startTimestamp={stamp}\n   LabelId: {day} | SportType: 100')
+        body = {'content': [{'type': 'text', 'text': json.dumps('\n'.join(lines))}], 'isError': False}
+        return SimpleNamespace(returncode=0, stdout=json.dumps(body))
+    with patch('coros_worker.subprocess.run', side_effect=provider):
+        result = run_sync(db_session, 1, helper, state, today=date(2026, 10, 27), days=2, limit=2)
+    assert requests == [('20261026', '20261027'), ('20261026', '20261026'), ('20261027', '20261027')]
+    db_session.expire_all()
+    assert result['inserted'] == 2
+    assert db_session.query(Memory).count() == 2
+    assert db_session.query(SyncState).one().last_success_date == '2026-10-27'
+
+
+def test_full_single_day_fails_without_writing(db_session, config):
+    from integrations.coros_records import CorosResponseError
+    from models import Memory, SyncState
+    helper, state, _ = config
+    db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
+    db_session.commit()
+    second = SAMPLE.split('1. ', 1)[1].replace('LabelId: 123', 'LabelId: 124')
+    two = SAMPLE.replace('(1 records)', '(2 records)') + '2. ' + second
+    body = {'content': [{'type': 'text', 'text': json.dumps(two)}], 'isError': False}
+    with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(body))):
+        with pytest.raises(CorosResponseError, match='Single-day'):
+            run_sync(db_session, 1, helper, state, today=date(2026, 10, 26), days=1, limit=2)
+    assert db_session.query(Memory).count() == 0
+    assert db_session.query(SyncState).count() == 0
+
+
 def test_worker_rejects_insecure_credentials_and_unknown_user(db_session, config):
     helper, state, token = config
     token.chmod(0o644)

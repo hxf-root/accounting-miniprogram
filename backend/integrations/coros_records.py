@@ -13,6 +13,18 @@ class CorosResponseError(ValueError):
     """An unsupported or incomplete COROS response."""
 
 
+def _summary(title: str, block: str) -> str:
+    """Keep recognized summary metrics, never location or raw blocks."""
+    metrics = []
+    duration = re.search(r'\bDuration:\s*(\d{1,3}:\d{2}(?::\d{2})?)(?=\s*(?:\||$))', block, re.MULTILINE)
+    if duration and all(int(part) < 60 for part in duration.group(1).split(':')[1:]):
+        metrics.append('时长 ' + duration.group(1))
+    distance = re.search(r'\bDistance:\s*(\d{1,5}(?:\.\d{1,3})?)\s+km(?=\s*(?:\||$))', block, re.MULTILINE)
+    if distance:
+        metrics.append('距离 ' + distance.group(1) + ' km')
+    return title + ('\n' + ' · '.join(metrics) if metrics else '')
+
+
 def parse_sport_records(result: dict) -> list[dict]:
     if not isinstance(result, dict) or result.get("isError"):
         raise CorosResponseError("COROS returned an error or unsupported response")
@@ -40,7 +52,7 @@ def parse_sport_records(result: dict) -> list[dict]:
         record_id = re.search(r"\bLabelId:\s*(\d+)\b", block)
         timestamp = re.search(r"\bstartTimestamp=(\d+)\b", block)
         sport_type = re.search(r"\bSportType:\s*(\d+)\b", block)
-        if not title or not record_id or not timestamp or not sport_type:
+        if not title or len(title) > 1000 or not record_id or not timestamp or not sport_type:
             raise CorosResponseError("COROS record is missing a required field")
         source_id = record_id.group(1)
         if source_id in seen:
@@ -52,5 +64,5 @@ def parse_sport_records(result: dict) -> list[dict]:
             raise CorosResponseError("COROS record has an invalid timestamp") from exc
         records.append({"source": "coros", "source_id": source_id,
                         "occurred_at": occurred.isoformat(timespec="microseconds"),
-                        "text": title, "sport_type": int(sport_type.group(1))})
+                        "text": _summary(title, block), "sport_type": int(sport_type.group(1))})
     return records
