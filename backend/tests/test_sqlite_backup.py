@@ -109,3 +109,35 @@ def test_restore_requires_rotated_jwt_key_and_revoked_sessions(client, db_sessio
     finally:
         app.dependency_overrides[get_db] = old_override
         engine.dispose()
+
+
+def test_existing_database_migrates_new_identity_tables_without_losing_data(tmp_path):
+    from sqlalchemy import create_engine, inspect, text
+    from database import Base
+    import models  # noqa: F401 - register models with Base metadata
+
+    path = tmp_path / 'pre-identity.db'
+    with sqlite3.connect(path) as db:
+        db.executescript('''
+            CREATE TABLE users (id INTEGER PRIMARY KEY, username VARCHAR(50) NOT NULL,
+                password_hash VARCHAR(128) NOT NULL, created_at DATETIME);
+            CREATE TABLE memories (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL,
+                source VARCHAR(32) NOT NULL, source_id VARCHAR(200), occurred_at VARCHAR(32) NOT NULL,
+                text TEXT NOT NULL, hidden BOOLEAN NOT NULL);
+            INSERT INTO users (id, username, password_hash) VALUES (7, 'synthetic-user', 'synthetic-hash');
+            INSERT INTO memories (id, user_id, source, occurred_at, text, hidden)
+                VALUES (9, 7, 'manual', '2026-10-28T00:00:00.000000+00:00', 'synthetic-memory', 0);
+        ''')
+        db.commit()
+    engine = create_engine(f'sqlite:///{path}')
+    try:
+        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        names = set(inspect(engine).get_table_names())
+        assert {'account_auth_epochs', 'external_identities', 'access_sessions'} <= names
+        with engine.connect() as conn:
+            assert conn.execute(text('SELECT id, username FROM users')).all() == [(7, 'synthetic-user')]
+            assert conn.execute(text('SELECT id, text FROM memories')).all() == [(9, 'synthetic-memory')]
+            assert conn.execute(text('SELECT COUNT(*) FROM account_auth_epochs')).scalar_one() == 0
+    finally:
+        engine.dispose()
