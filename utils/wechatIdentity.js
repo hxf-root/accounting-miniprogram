@@ -17,13 +17,14 @@ function getCode() {
   })
 }
 
-async function bind() {
+async function bind(password) {
+  if (typeof password !== 'string' || !password) throw new Error('请输入账户密码')
   const originalToken = api.getToken()
   if (!originalToken) throw new Error('请先连接已有账户')
   const version = generation
   const code = await getCode()
   if (version !== generation || api.getToken() !== originalToken) throw new Error('操作已取消')
-  await api.bindWechat(code)
+  await api.bindWechat(code, password)
   if (version !== generation || api.getToken() !== originalToken) throw new Error('操作已取消')
   wx.setStorageSync(AUTO_KEY, true)
 }

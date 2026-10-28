@@ -9,6 +9,8 @@ Page({
     hasAccount: false,
     wechatEnabled: false,
     identityBusy: false,
+    showWechatBindModal: false,
+    wechatBindPassword: '',
 
   },
 
@@ -75,16 +77,38 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' })
   },
 
-  async bindWechat() {
+  bindWechat() {
     if (this.data.identityBusy) return
-    this.setData({ identityBusy: true })
+    this.setData({ showWechatBindModal: true, wechatBindPassword: '' })
+  },
+
+  onBindPasswordInput(event) {
+    this.setData({ wechatBindPassword: event.detail.value })
+  },
+
+  cancelWechatBind() {
+    if (!this.data.identityBusy) this.setData({ showWechatBindModal: false, wechatBindPassword: '' })
+  },
+
+  onHide() {
+    this.setData({ showWechatBindModal: false, wechatBindPassword: '' })
+  },
+
+  async confirmWechatBind() {
+    if (this.data.identityBusy) return
+    const password = this.data.wechatBindPassword
+    if (!password) {
+      wx.showToast({ title: '请输入账户密码', icon: 'none' })
+      return
+    }
+    this.setData({ identityBusy: true, wechatBindPassword: '' })
     try {
-      await identity.bind()
-      this.setData({ wechatEnabled: identity.enabled() })
+      await identity.bind(password)
+      this.setData({ wechatEnabled: identity.enabled(), showWechatBindModal: false })
       wx.showToast({ title: '微信已连接', icon: 'success' })
     } catch (_) {
-      wx.showToast({ title: '连接失败，请稍后再试', icon: 'none' })
-    } finally { this.setData({ identityBusy: false }) }
+      wx.showToast({ title: '连接失败，请核对密码或稍后再试', icon: 'none' })
+    } finally { this.setData({ identityBusy: false, wechatBindPassword: '' }) }
   },
 
   unbindWechat() {

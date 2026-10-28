@@ -79,3 +79,34 @@ def unbind_and_revoke_sessions(db: Session, user_id: int, provider: str) -> bool
     except Exception:
         db.rollback()
         raise
+
+
+def bind_for_account(db: Session, user_id: int, identity: VerifiedIdentity, key: bytes, *, revalidate) -> None:
+    """Bind after rechecking local authorization inside the SQLite write lock.
+
+    revalidate must verify both the current credential and account proof using
+    this session; never pass a callback that trusts a client-supplied user ID.
+    """
+    from sqlalchemy.exc import IntegrityError
+    from identity.bindings import BindingConflict
+
+    digest = subject_digest(identity, key)
+    _require_fresh_sqlite(db)
+    try:
+        _begin_serialized_write(db)
+        revalidate(db)
+        existing_subject = db.query(ExternalIdentity).filter_by(provider=identity.provider, subject_digest=digest).first()
+        existing_user = db.query(ExternalIdentity).filter_by(provider=identity.provider, user_id=user_id).first()
+        if existing_subject or existing_user:
+            if existing_subject and existing_user and existing_subject.id == existing_user.id:
+                db.commit()
+                return
+            raise BindingConflict('identity already bound')
+        db.add(ExternalIdentity(user_id=user_id, provider=identity.provider, subject_digest=digest))
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise BindingConflict('identity already bound') from exc
+    except Exception:
+        db.rollback()
+        raise

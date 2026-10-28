@@ -5,17 +5,20 @@ revocation and database migration have been verified.
 """
 import base64
 import binascii
+import hmac
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from models import User
 
-from auth import get_current_user
+from auth import get_current_user, security, verify_password
 from database import get_db
-from identity.bindings import BindingConflict, bind
-from identity.service import UnboundIdentity, issue_for_identity, unbind_and_revoke_sessions
+from identity.bindings import BindingConflict
+from identity.service import UnboundIdentity, bind_for_account, issue_for_identity, unbind_and_revoke_sessions
 from identity.wechat import WeChatCodeExchange, WeChatConfig, WeChatExchangeError
 from identity.rate_limit import consume, client_address, RateLimitExceeded, UntrustedAddress
 
@@ -24,6 +27,10 @@ router = APIRouter(prefix='/api/auth/wechat', tags=['wechat-identity'])
 
 class LoginCode(BaseModel):
     code: str = Field(min_length=1, max_length=512, repr=False)
+
+
+class BindingCode(LoginCode):
+    password: str = Field(min_length=1, max_length=128, repr=False)
 
 
 def config() -> tuple[WeChatCodeExchange, bytes]:
@@ -73,12 +80,23 @@ def verified(provider: WeChatCodeExchange, code: str):
 
 
 @router.post('/bind', dependencies=[Depends(rate_ip), Depends(rate_account)])
-def bind_existing(data: LoginCode, user: dict = Depends(get_current_user),
+def bind_existing(data: BindingCode, user: dict = Depends(get_current_user),
+                  credential: HTTPAuthorizationCredentials = Depends(security),
                   db: Session = Depends(get_db), settings=Depends(config)):
     provider, key = settings
+    account = db.query(User).filter_by(id=user['user_id']).first()
+    if not account or not verify_password(data.password, account.password_hash):
+        raise HTTPException(401, '账户验证失败')
+    verified_hash = account.password_hash
     identity = verified(provider, data.code)
+    def revalidate(locked_db):
+        checked = get_current_user(cred=credential, db=locked_db)
+        current = locked_db.query(User).filter_by(id=user['user_id']).first()
+        if checked['user_id'] != user['user_id'] or not current or not hmac.compare_digest(verified_hash, current.password_hash):
+            raise HTTPException(401, '账户验证失败')
     try:
-        bind(db, user['user_id'], identity, key)
+        with Session(bind=db.get_bind()) as dedicated:
+            bind_for_account(dedicated, user['user_id'], identity, key, revalidate=revalidate)
     except BindingConflict:
         raise HTTPException(409, '身份绑定冲突') from None
     return {'ok': True}

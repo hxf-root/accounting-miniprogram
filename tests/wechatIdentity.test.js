@@ -13,13 +13,13 @@ const token = 'a'.repeat(43)
 
 ;(async () => {
   assert.equal(await identity.restore(), false)
-  await assert.rejects(identity.bind(), /连接已有账户/)
+  await assert.rejects(identity.bind('fake-password'), /连接已有账户/)
   api.setToken('existing-account-token')
   let calls = []
-  api.bindWechat = async code => { calls.push(code) }
-  await identity.bind()
+  api.bindWechat = async (code, password) => { calls.push([code, password]) }
+  await identity.bind('fake-password')
   assert.equal(identity.enabled(), true)
-  assert.deepEqual(calls, ['fake-code'])
+  assert.deepEqual(calls, [['fake-code', 'fake-password']])
   api.clearAuth()
   let loginCount = 0
   api.loginWechat = async () => { loginCount++; return { token } }
@@ -43,14 +43,14 @@ const token = 'a'.repeat(43)
   nextLogin = () => new Promise(resolve => { resolveBindingCode = resolve })
   api.setToken('first-account')
   api.bindWechat = async () => { bindingCalls++ }
-  const binding = identity.bind()
+  const binding = identity.bind('fake-password')
   api.setToken('different-account')
   resolveBindingCode('fake-code')
   await assert.rejects(binding, /操作已取消/)
   assert.equal(bindingCalls, 0)
   nextLogin = () => Promise.resolve('fake-code')
   api.setToken('existing-account-token')
-  await identity.bind()
+  await identity.bind('fake-password')
   api.unbindWechat = async () => ({ ok: true })
   await identity.unbind()
   assert.equal(identity.enabled(), false)

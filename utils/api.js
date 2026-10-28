@@ -69,7 +69,7 @@ module.exports = {
     request('POST', '/api/auth/register', { username, password }),
 
   // 微信身份：此实验接口由服务器决定是否启用。
-  bindWechat: (code) => request('POST', '/api/auth/wechat/bind', { code }, { preserveAuthOn401: true }),
+  bindWechat: (code, password) => request('POST', '/api/auth/wechat/bind', { code, password }, { preserveAuthOn401: true }),
   loginWechat: (code) => request('POST', '/api/auth/wechat/login', { code }, { preserveAuthOn401: true }),
   unbindWechat: () => request('DELETE', '/api/auth/wechat/bind'),
 

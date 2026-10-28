@@ -68,4 +68,17 @@
     <view class="bottom-safe"></view>
   </scroll-view>
 
+  <view wx:if="{{showWechatBindModal}}" class="popup-mask" bindtap="cancelWechatBind">
+    <view class="popup-content" catchtap="">
+      <view class="modal-header"><text class="modal-title">确认账户</text></view>
+      <view class="modal-body">
+        <text class="modal-subtext">首次连接微信需要验证抱布记账户密码，之后无需每次输入。</text>
+        <input class="setting-input" type="password" placeholder="请输入账户密码" value="{{wechatBindPassword}}" bindinput="onBindPasswordInput" />
+      </view>
+      <view class="modal-actions">
+        <button class="btn-outline modal-btn" bindtap="cancelWechatBind" disabled="{{identityBusy}}">取消</button>
+        <button class="btn-primary modal-btn" bindtap="confirmWechatBind" disabled="{{identityBusy}}">确认连接</button>
+      </view>
+    </view>
+  </view>
 </view>
