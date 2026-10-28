@@ -74,6 +74,32 @@ page.setData = values => Object.assign(page.data, values)
   oldResolve(batch(0).slice(0, 1)); await older
   assert.equal(page.data.selected.id, '51')
 
+  // A selected local calendar day is sent as an exclusive UTC range.
+  let dateRange
+  api.getMemories = async (cursor, range) => { dateRange = range; return batch(0).slice(0, 1) }
+  await page.chooseDate({ detail: { value: '2026-10-26' } })
+  assert.equal(page.data.selectedDate, '2026-10-26')
+  assert.equal(new Date(dateRange.start).getDate(), 26)
+  assert.equal(new Date(dateRange.end).getDate(), 27)
+  if (process.env.TZ === 'America/New_York') {
+    await page.chooseDate({ detail: { value: '2026-03-08' } })
+    assert.equal((new Date(dateRange.end) - new Date(dateRange.start)) / 3600000, 23)
+    await page.chooseDate({ detail: { value: '2026-11-01' } })
+    assert.equal((new Date(dateRange.end) - new Date(dateRange.start)) / 3600000, 25)
+  }
+  await page.clearDate()
+  assert.equal(dateRange, null)
+  // Changing date invalidates the previous request and hides the previous results immediately.
+  let earlierDate
+  api.getMemories = () => new Promise(resolve => { earlierDate = resolve })
+  const olderDate = page.chooseDate({ detail: { value: '2026-10-25' } })
+  assert.equal(page.data.mode, 'demo')
+  api.getMemories = async () => []
+  await page.chooseDate({ detail: { value: '2026-10-26' } })
+  earlierDate(batch(0)); await olderDate
+  assert.match(page.data.status, /所选日期没有真实回忆/)
+  await page.clearDate()
+
   // A result outside the loaded page can be shown without changing the pagination cursor.
   api.getMemories = async () => batch(0)
   await page.loadMemories()

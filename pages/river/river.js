@@ -33,6 +33,15 @@ function starsFor(memories, activeIndex) {
   return memories.slice(start, start + 4).map((item, offset) => ({ ...item, index: start + offset }))
 }
 
+function dateRange(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('日期格式无效')
+  const [year, month, day] = value.split('-').map(Number)
+  const start = new Date(year, month - 1, day)
+  if (start.getFullYear() !== year || start.getMonth() !== month - 1 || start.getDate() !== day) throw new Error('日期格式无效')
+  const end = new Date(year, month - 1, day + 1)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
 Page({
   data: {
     memories: EXAMPLES,
@@ -47,6 +56,7 @@ Page({
     discoverError: '',
     discovering: false,
     nextCursor: null,
+    selectedDate: '',
     status: '正在寻找你的回忆 · 以下内容为示例',
   },
 
@@ -96,12 +106,13 @@ Page({
       this.setMemories(EXAMPLES, 'demo', '正在寻找你的回忆 · 以下内容为示例')
     }
     this.setData({ status: this.data.mode === 'live' ? '正在更新你的私人回忆' : '正在寻找你的回忆 · 以下内容为示例', loadingMore: false, loadMoreError: '', discovering: false, discoverError: '' })
-    return api.getMemories().then(items => {
+    const range = this.data.selectedDate ? dateRange(this.data.selectedDate) : null
+    return api.getMemories(null, range).then(items => {
       if (version !== this.requestVersion) return
       if (api.getToken() !== requestedToken) return this.handleAuthChange(version, allowRestore)
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
       if (!items.length) {
-        this.setMemories(EXAMPLES, 'demo', '还没有真实回忆 · 以下内容为示例')
+        this.setMemories(EXAMPLES, 'demo', this.data.selectedDate ? '所选日期没有真实回忆 · 以下内容为示例' : '还没有真实回忆 · 以下内容为示例')
         return
       }
       const memories = items.map(toMemory)
@@ -130,7 +141,8 @@ Page({
     const version = this.requestVersion
     if (!requestedToken || this.memoryToken !== requestedToken) return this.handleAuthChange(version, true)
     this.setData({ loadingMore: true, loadMoreError: '' })
-    return api.getMemories(cursor).then(items => {
+    const range = this.data.selectedDate ? dateRange(this.data.selectedDate) : null
+    return api.getMemories(cursor, range).then(items => {
       if (version !== this.requestVersion) return
       if (api.getToken() !== requestedToken) return this.handleAuthChange(version, true)
       if (!Array.isArray(items)) throw new Error('回忆数据格式无效')
@@ -157,6 +169,21 @@ Page({
     if (!Number.isInteger(index) || index < 0 || index >= this.data.memories.length) return
     this.discoverVersion = (this.discoverVersion || 0) + 1
     this.setData({ activeIndex: index, selected: this.data.memories[index], stars: starsFor(this.data.memories, index), discovering: false, discoverError: '' })
+  },
+
+  chooseDate(event) {
+    const value = event.detail.value
+    try { dateRange(value) } catch (_) { return }
+    this.setData({ selectedDate: value })
+    this.setMemories(EXAMPLES, 'demo', '正在寻找所选日期的回忆 · 以下内容为示例')
+    return this.loadMemories()
+  },
+
+  clearDate() {
+    if (!this.data.selectedDate) return
+    this.setData({ selectedDate: '' })
+    this.setMemories(EXAMPLES, 'demo', '正在寻找你的回忆 · 以下内容为示例')
+    return this.loadMemories()
   },
 
   discover() {

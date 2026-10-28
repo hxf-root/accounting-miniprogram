@@ -100,7 +100,7 @@ module.exports = {
   deleteFitnessRecord: (id) => request('DELETE', '/api/fitness/records/' + id),
 
   // 时间长河（最多返回最近 50 条）
-  getMemories: (cursor) => request('GET', '/api/memories?limit=50' + (cursor ? '&before=' + encodeURIComponent(cursor.occurredAt) + '&before_id=' + encodeURIComponent(cursor.id) : '')),
+  getMemories: (cursor, range) => request('GET', '/api/memories' + (range ? '/by-date' : '') + '?limit=50' + (cursor ? '&before=' + encodeURIComponent(cursor.occurredAt) + '&before_id=' + encodeURIComponent(cursor.id) : '') + (range ? '&start=' + encodeURIComponent(range.start) + '&end=' + encodeURIComponent(range.end) : '')),
   discoverMemory: (excludeId) => request('GET', '/api/memories/discover' + (excludeId ? '?exclude_id=' + encodeURIComponent(excludeId) : '')),
 
   // 统计

@@ -47,11 +47,18 @@ def create_memory(data: MemoryCreate, db: Session = Depends(get_db), user: dict 
 @router.get("")
 def list_memories(include_hidden: bool = False, limit: int = Query(50, ge=1, le=100),
                   offset: int = Query(0, ge=0), before: datetime | None = None,
-                  before_id: int | None = Query(None, ge=1), db: Session = Depends(get_db),
+                  before_id: int | None = Query(None, ge=1),
+                  start: datetime | None = None, end: datetime | None = None, db: Session = Depends(get_db),
                   user: dict = Depends(get_current_user)):
     if (before is None) != (before_id is None) or (before is not None and (before.utcoffset() is None or offset)):
         raise HTTPException(status_code=422, detail="分页游标需要带时区的时间与记录 ID，且不能与 offset 同用")
     query = db.query(Memory).filter(Memory.user_id == user["user_id"])
+    if (start is None) != (end is None) or (start is not None and
+            (start.utcoffset() is None or end.utcoffset() is None or start >= end)):
+        raise HTTPException(status_code=422, detail='日期范围需要带时区的开始和结束时间')
+    if start is not None:
+        query = query.filter(Memory.occurred_at >= start.astimezone(timezone.utc).isoformat(timespec='microseconds'),
+                             Memory.occurred_at < end.astimezone(timezone.utc).isoformat(timespec='microseconds'))
     if before is not None:
         stamp = before.astimezone(timezone.utc).isoformat(timespec="microseconds")
         query = query.filter(or_(Memory.occurred_at < stamp,
@@ -60,6 +67,14 @@ def list_memories(include_hidden: bool = False, limit: int = Query(50, ge=1, le=
         query = query.filter(Memory.hidden.is_(False))
     items = query.order_by(Memory.occurred_at.desc(), Memory.id.desc()).offset(offset).limit(limit).all()
     return [serialize(item) for item in items]
+
+
+@router.get('/by-date')
+def list_memories_by_date(start: datetime, end: datetime, limit: int = Query(50, ge=1, le=100),
+                          before: datetime | None = None, before_id: int | None = Query(None, ge=1),
+                          db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    return list_memories(include_hidden=False, limit=limit, offset=0, before=before, before_id=before_id,
+                         start=start, end=end, db=db, user=user)
 
 
 @router.get('/discover')

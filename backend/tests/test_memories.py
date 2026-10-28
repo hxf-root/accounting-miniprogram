@@ -84,3 +84,28 @@ def test_cursor_pagination_survives_concurrent_changes(client, auth_headers):
     assert client.get('/api/memories?before_id=1', headers=auth_headers).status_code == 422
     assert client.get('/api/memories', headers=auth_headers, params={'before': '2026-01-01T00:00:00', 'before_id': 1}).status_code == 422
     assert client.get('/api/memories', headers=auth_headers, params={'before': last['occurred_at'], 'before_id': last['id'], 'offset': 1}).status_code == 422
+
+
+def test_date_range_respects_timezone_boundaries_and_cursor(client, auth_headers):
+    def create(stamp):
+        data = payload(text=stamp)
+        data['occurred_at'] = stamp
+        return client.post('/api/memories', headers=auth_headers, json=data).json()
+    create('2026-10-25T15:59:59Z')
+    start = create('2026-10-26T00:00:00+08:00')
+    last = create('2026-10-26T23:59:59+08:00')
+    create('2026-10-27T00:00:00+08:00')
+    hidden = create('2026-10-26T15:00:00+08:00')
+    client.patch(f"/api/memories/{hidden['id']}", headers=auth_headers, json={'hidden': True})
+    other = client.post('/api/auth/register', json={'username': 'date-other', 'password': 'test1234'}).json()
+    other_headers = {'Authorization': 'Bearer ' + other['token']}
+    client.post('/api/memories', headers=other_headers, json=payload(text='其他账户'))
+    params = {'start': '2026-10-26T00:00:00+08:00', 'end': '2026-10-27T00:00:00+08:00', 'limit': 1}
+    first = client.get('/api/memories/by-date', headers=auth_headers, params=params).json()
+    assert [x['id'] for x in first] == [last['id']]
+    params.update({'before': first[0]['occurred_at'], 'before_id': first[0]['id']})
+    assert [x['id'] for x in client.get('/api/memories/by-date', headers=auth_headers, params=params).json()] == [start['id']]
+    assert client.get('/api/memories/by-date', headers=auth_headers).status_code == 422
+    assert client.get('/api/memories', headers=auth_headers, params={'start': '2026-10-26T00:00:00Z'}).status_code == 422
+    assert client.get('/api/memories', headers=auth_headers, params={'start': '2026-10-26T00:00:00', 'end': '2026-10-27T00:00:00Z'}).status_code == 422
+    assert client.get('/api/memories', headers=auth_headers, params={'start': '2026-10-27T00:00:00Z', 'end': '2026-10-26T00:00:00Z'}).status_code == 422

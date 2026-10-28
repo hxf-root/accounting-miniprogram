@@ -29,6 +29,8 @@
     <button class="discover" bindtap="discover" disabled="{{discovering}}">{{discovering ? '正在寻找…' : '遇见另一个瞬间'}} <text>↗</text></button>
     <text wx:if="{{discoverError}}" class="load-error">{{discoverError}}</text>
     <view class="timeline-heading"><text>沿着时间走</text><text class="timeline-caption">{{countLabel}}</text></view>
+    <picker mode="date" value="{{selectedDate}}" bindchange="chooseDate"><view class="timeline-caption">{{selectedDate ? '日期：' + selectedDate : '选择日期'}}</view></picker>
+    <button wx:if="{{selectedDate}}" class="load-more" bindtap="clearDate">查看全部日期</button>
     <scroll-view class="timeline" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="timeline-row">
         <button wx:for="{{memories}}" wx:key="id" class="timeline-item {{activeIndex === index ? 'timeline-active' : ''}}" data-index="{{index}}" bindtap="selectMemory">
