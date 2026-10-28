@@ -26,7 +26,8 @@
       <view class="card-footer"><text>{{selected.note}}</text><text>✦</text></view>
     </view>
 
-    <button class="discover" bindtap="discover">遇见另一个瞬间 <text>↗</text></button>
+    <button class="discover" bindtap="discover" disabled="{{discovering}}">{{discovering ? '正在寻找…' : '遇见另一个瞬间'}} <text>↗</text></button>
+    <text wx:if="{{discoverError}}" class="load-error">{{discoverError}}</text>
     <view class="timeline-heading"><text>沿着时间走</text><text class="timeline-caption">{{countLabel}}</text></view>
     <scroll-view class="timeline" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="timeline-row">

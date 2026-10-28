@@ -101,6 +101,7 @@ module.exports = {
 
   // 时间长河（最多返回最近 50 条）
   getMemories: (cursor) => request('GET', '/api/memories?limit=50' + (cursor ? '&before=' + encodeURIComponent(cursor.occurredAt) + '&before_id=' + encodeURIComponent(cursor.id) : '')),
+  discoverMemory: (excludeId) => request('GET', '/api/memories/discover' + (excludeId ? '?exclude_id=' + encodeURIComponent(excludeId) : '')),
 
   // 统计
   getMonthlyStats: (year, month) => request('GET', `/api/stats/monthly?year=${year}&month=${month}`),

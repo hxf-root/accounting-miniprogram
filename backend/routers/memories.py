@@ -1,8 +1,8 @@
 """私人回忆基础接口；自动采集和媒体文件另行实现。"""
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, or_
-from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, or_, func
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -60,6 +60,18 @@ def list_memories(include_hidden: bool = False, limit: int = Query(50, ge=1, le=
         query = query.filter(Memory.hidden.is_(False))
     items = query.order_by(Memory.occurred_at.desc(), Memory.id.desc()).offset(offset).limit(limit).all()
     return [serialize(item) for item in items]
+
+
+@router.get('/discover')
+def discover_memory(response: Response, exclude_id: int | None = Query(None, ge=1),
+                    db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    query = db.query(Memory).filter(Memory.user_id == user['user_id'], Memory.hidden.is_(False))
+    candidates = query.filter(Memory.id != exclude_id) if exclude_id is not None else query
+    item = candidates.order_by(func.random()).first()
+    if item is None and exclude_id is not None:
+        item = query.order_by(func.random()).first()
+    return serialize(item) if item else None
 
 
 def get_owned(db, user_id, memory_id):

@@ -74,6 +74,35 @@ page.setData = values => Object.assign(page.data, values)
   oldResolve(batch(0).slice(0, 1)); await older
   assert.equal(page.data.selected.id, '51')
 
+  // A result outside the loaded page can be shown without changing the pagination cursor.
+  api.getMemories = async () => batch(0)
+  await page.loadMemories()
+  const cursor = page.data.nextCursor
+  api.discoverMemory = async () => batch(500).slice(0, 1)[0]
+  await page.discover()
+  assert.equal(page.data.selected.id, '501')
+  assert.equal(page.data.activeIndex, -1)
+  assert.equal(page.data.memories.length, 50)
+  assert.equal(page.data.nextCursor, cursor)
+  // A manual selection wins over an outstanding discovery.
+  let discoverResolve
+  api.discoverMemory = () => new Promise(resolve => { discoverResolve = resolve })
+  const discovery = page.discover()
+  page.selectMemory({ currentTarget: { dataset: { index: 2 } } })
+  discoverResolve(batch(600)[0]); await discovery
+  assert.equal(page.data.selected.id, '3')
+  api.discoverMemory = async () => { throw new Error('offline') }
+  await page.discover()
+  assert.match(page.data.discoverError, /重试/)
+  let firstDiscover, secondDiscover
+  api.discoverMemory = () => new Promise(resolve => { firstDiscover = resolve })
+  const firstDiscovery = page.discover()
+  api.discoverMemory = () => new Promise(resolve => { secondDiscover = resolve })
+  const secondDiscovery = page.discover()
+  secondDiscover(batch(800)[0]); await secondDiscovery
+  firstDiscover(batch(900)[0]); await firstDiscovery
+  assert.equal(page.data.selected.id, '801')
+
   // Refresh invalidates an outstanding pagination request as well.
   api.getMemories = async () => batch(0)
   await page.loadMemories()
@@ -106,5 +135,20 @@ page.setData = values => Object.assign(page.data, values)
   page.onHide()
   hiddenResolve(batch(0)); await pending
   assert.equal(page.data.mode, 'demo')
+  api.getMemories = async () => batch(0)
+  await page.loadMemories()
+  api.discoverMemory = () => new Promise(resolve => { discoverResolve = resolve })
+  const hiddenDiscovery = page.discover()
+  page.onHide()
+  discoverResolve(batch(700)[0]); await hiddenDiscovery
+  assert.equal(page.data.mode, 'demo')
+  assert.notEqual(page.data.selected.id, '701')
+  await page.loadMemories()
+  api.discoverMemory = () => new Promise(resolve => { discoverResolve = resolve })
+  const switchedDiscovery = page.discover()
+  token = ''
+  discoverResolve(batch(700)[0]); await switchedDiscovery
+  assert.equal(page.data.mode, 'demo')
+  assert.notEqual(page.data.selected.id, '701')
   console.log('river page: sample, data, empty, error and selection passed')
 })().catch(error => { console.error(error); process.exitCode = 1 })

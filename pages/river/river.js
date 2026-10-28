@@ -44,6 +44,8 @@ Page({
     hasMore: false,
     loadingMore: false,
     loadMoreError: '',
+    discoverError: '',
+    discovering: false,
     nextCursor: null,
     status: '正在寻找你的回忆 · 以下内容为示例',
   },
@@ -65,6 +67,7 @@ Page({
   },
 
   nextRequestVersion() {
+    this.discoverVersion = (this.discoverVersion || 0) + 1
     this.requestVersion = (this.requestVersion || 0) + 1
     return this.requestVersion
   },
@@ -92,7 +95,7 @@ Page({
     if (this.data.mode === 'live' && this.memoryToken !== requestedToken) {
       this.setMemories(EXAMPLES, 'demo', '正在寻找你的回忆 · 以下内容为示例')
     }
-    this.setData({ status: this.data.mode === 'live' ? '正在更新你的私人回忆' : '正在寻找你的回忆 · 以下内容为示例', loadingMore: false, loadMoreError: '' })
+    this.setData({ status: this.data.mode === 'live' ? '正在更新你的私人回忆' : '正在寻找你的回忆 · 以下内容为示例', loadingMore: false, loadMoreError: '', discovering: false, discoverError: '' })
     return api.getMemories().then(items => {
       if (version !== this.requestVersion) return
       if (api.getToken() !== requestedToken) return this.handleAuthChange(version, allowRestore)
@@ -116,7 +119,8 @@ Page({
   },
 
   setMemories(memories, mode, status, hasMore = false) {
-    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, hasMore, nextCursor: mode === 'live' ? memories[memories.length - 1] : null, loadingMore: false, loadMoreError: '', countLabel: `${mode === 'demo' ? '示例' : '已加载'} ${memories.length} 条` })
+    this.discoverVersion = (this.discoverVersion || 0) + 1
+    this.setData({ memories, stars: starsFor(memories, 0), selected: memories[0], activeIndex: 0, mode, status, hasMore, nextCursor: mode === 'live' ? memories[memories.length - 1] : null, loadingMore: false, loadMoreError: '', discovering: false, discoverError: '', countLabel: `${mode === 'demo' ? '示例' : '已加载'} ${memories.length} 条` })
   },
 
   loadMore() {
@@ -151,10 +155,30 @@ Page({
   selectMemory(event) {
     const index = Number(event.currentTarget.dataset.index)
     if (!Number.isInteger(index) || index < 0 || index >= this.data.memories.length) return
-    this.setData({ activeIndex: index, selected: this.data.memories[index], stars: starsFor(this.data.memories, index) })
+    this.discoverVersion = (this.discoverVersion || 0) + 1
+    this.setData({ activeIndex: index, selected: this.data.memories[index], stars: starsFor(this.data.memories, index), discovering: false, discoverError: '' })
   },
 
   discover() {
+    if (this.data.mode === 'live') {
+      const token = api.getToken()
+      const requestVersion = this.requestVersion
+      if (!token || token !== this.memoryToken) return this.handleAuthChange(requestVersion, true)
+      const version = this.discoverVersion = (this.discoverVersion || 0) + 1
+      this.setData({ discovering: true, discoverError: '' })
+      return api.discoverMemory(this.data.selected.id).then(item => {
+        if (version !== this.discoverVersion || requestVersion !== this.requestVersion) return
+        if (api.getToken() !== token) return this.handleAuthChange(requestVersion, true)
+        if (!item) { this.setData({ discovering: false, discoverError: '暂时没有可遇见的回忆' }); return }
+        const selected = toMemory(item)
+        const index = this.data.memories.findIndex(memory => memory.id === selected.id)
+        this.setData({ selected, activeIndex: index, stars: index >= 0 ? starsFor(this.data.memories, index) : this.data.stars, discovering: false })
+      }).catch(() => {
+        if (version !== this.discoverVersion || requestVersion !== this.requestVersion) return
+        if (api.getToken() !== token) return this.handleAuthChange(requestVersion, true)
+        this.setData({ discovering: false, discoverError: '暂时无法遇见回忆，请重试' })
+      })
+    }
     const length = this.data.memories.length
     if (length < 2) return
     const step = 1 + Math.floor(Math.random() * (length - 1))

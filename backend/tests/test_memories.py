@@ -53,6 +53,24 @@ def test_requires_auth_and_timezone(client, auth_headers):
     assert client.post('/api/memories', headers=auth_headers, json=payload('coros')).status_code == 422
 
 
+def test_discover_is_private_and_includes_older_visible_memories(client, auth_headers):
+    assert client.get('/api/memories/discover').status_code == 401
+    assert client.get('/api/memories/discover', headers=auth_headers).json() is None
+    old = client.post('/api/memories', headers=auth_headers, json=payload(text='较早')).json()
+    new = client.post('/api/memories', headers=auth_headers, json=payload(text='最近')).json()
+    hidden = client.post('/api/memories', headers=auth_headers, json=payload(text='隐藏')).json()
+    client.patch(f"/api/memories/{hidden['id']}", headers=auth_headers, json={'hidden': True})
+    other = client.post('/api/auth/register', json={'username': 'discover-other', 'password': 'test1234'}).json()
+    other_headers = {'Authorization': 'Bearer ' + other['token']}
+    client.post('/api/memories', headers=other_headers, json=payload(text='其他账户'))
+    response = client.get('/api/memories/discover', headers=auth_headers, params={'exclude_id': new['id']})
+    assert response.json()['id'] == old['id']
+    assert response.headers['cache-control'] == 'no-store'
+    client.delete(f"/api/memories/{new['id']}", headers=auth_headers)
+    assert client.get('/api/memories/discover', headers=auth_headers, params={'exclude_id': old['id']}).json()['id'] == old['id']
+    assert client.get('/api/memories/discover', headers=auth_headers, params={'exclude_id': 0}).status_code == 422
+
+
 def test_cursor_pagination_survives_concurrent_changes(client, auth_headers):
     rows = [client.post('/api/memories', headers=auth_headers, json=payload(text=str(i))).json() for i in range(4)]
     first = client.get('/api/memories?limit=2', headers=auth_headers).json()
