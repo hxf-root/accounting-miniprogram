@@ -119,3 +119,23 @@ def test_commit_failure_rolls_back_partial_writes(client, auth_headers, monkeypa
     with pytest.raises(RuntimeError, match='synthetic failure'):
         commit(client, auth_headers, {'memories': []}, p)
     assert client.get('/api/data/export', headers=auth_headers).json() == backup
+
+
+def test_failed_import_also_rolls_back_source_fence(client, auth_headers, db_session, monkeypatch):
+    from models import SourceControl, User
+    from sqlalchemy.orm import Session
+    user_id = db_session.query(User).filter_by(username='testuser').one().id
+    db_session.add(SourceControl(user_id=user_id, source='coros', status='active', generation=4,
+                                 lease_token='a' * 64, lease_expires_at=9999999999))
+    db_session.commit()
+    payload = {'memories': []}
+    token = preview(client, auth_headers, payload).json()['preview_token']
+    def fail_source_update(session):
+        session.flush()
+        raise RuntimeError('synthetic commit failure')
+    monkeypatch.setattr(Session, 'commit', fail_source_update)
+    with pytest.raises(RuntimeError, match='synthetic commit failure'):
+        commit(client, auth_headers, payload, token)
+    db_session.expire_all()
+    source = db_session.query(SourceControl).filter_by(user_id=user_id).one()
+    assert (source.generation, source.lease_token, source.lease_expires_at) == (4, 'a' * 64, 9999999999)

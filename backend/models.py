@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index, UniqueConstraint, CheckConstraint
 from database import Base
 
 
@@ -83,6 +83,27 @@ class SyncState(Base):
     user_id = Column(Integer, nullable=False, index=True)
     source = Column(String(32), nullable=False)
     last_success_date = Column(String(10), nullable=False)
+
+
+class SourceControl(Base):
+    """Local scheduling permission and fencing; not proof of provider authorization."""
+    __tablename__ = "source_controls"
+    __table_args__ = (
+        UniqueConstraint("user_id", "source", name="uq_source_control_user_source"),
+        CheckConstraint("source = 'coros'", name="ck_source_control_source"),
+        CheckConstraint("status IN ('active', 'paused')", name="ck_source_control_status"),
+        CheckConstraint("generation >= 0", name="ck_source_control_generation"),
+        CheckConstraint("(lease_token IS NULL AND lease_expires_at IS NULL) OR "
+                        "(lease_token IS NOT NULL AND lease_expires_at IS NOT NULL)",
+                        name="ck_source_control_lease_pair"),
+    )
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    source = Column(String(32), nullable=False)
+    status = Column(String(16), nullable=False, default='paused')
+    generation = Column(Integer, nullable=False, default=0)
+    lease_token = Column(String(64), nullable=True)
+    lease_expires_at = Column(Integer, nullable=True)
 
 
 class Bill(Base):

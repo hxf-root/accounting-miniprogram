@@ -46,6 +46,20 @@
       </view>
     </view>
 
+    <view wx:if="{{hasAccount}}" class="section-title">高驰同步</view>
+    <view wx:if="{{hasAccount}}" class="glass-card">
+      <view class="action-row">
+        <view class="action-text-wrap">
+          <text class="action-label">{{sourceStatus === 'active' ? '已允许同步' : sourceStatus === 'paused' ? '已暂停同步' : sourceStatus === 'unconfigured' ? '尚未配置同步' : '同步状态暂不可用'}}</text>
+          <text class="action-desc">{{sourceLastSuccess ? '上次成功同步日期：' + sourceLastSuccess : '还没有可显示的成功同步日期'}}</text>
+        </view>
+      </view>
+      <view wx:if="{{sourceStatus === 'active' || sourceStatus === 'paused'}}" class="action-row" bindtap="toggleCoros">
+        <text class="action-label">{{sourceBusy ? '正在处理…' : sourceStatus === 'active' ? '暂停同步' : '恢复同步'}}</text>
+        <text class="action-arrow">›</text>
+      </view>
+    </view>
+
     <!-- ===== 应用信息 ===== -->
     <view class="section-title">关于</view>
     <view class="glass-card about-card">

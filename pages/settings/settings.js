@@ -11,6 +11,9 @@ Page({
     wechatBound: null,
     autoEnabled: false,
     identityBusy: false,
+    sourceStatus: null,
+    sourceLastSuccess: null,
+    sourceBusy: false,
     showWechatBindModal: false,
     wechatBindPassword: '',
 
@@ -26,7 +29,7 @@ Page({
     this.accountStateToken = null
     const user = api.getUser()
     this.setData({ userName: user.username || '私人空间', hasAccount: Boolean(api.getToken()),
-      wechatConfigured: null, wechatBound: null, autoEnabled: identity.enabled() })
+      wechatConfigured: null, wechatBound: null, autoEnabled: identity.enabled(), sourceStatus: null, sourceLastSuccess: null })
     return identity.restore().then(() => {
       if (version !== this.stateVersion) return
       return this.refreshAccountState(version)
@@ -41,24 +44,50 @@ Page({
   async refreshAccountState(version = this.stateVersion) {
     const requestedToken = api.getToken()
     this.setData({ hasAccount: Boolean(requestedToken), autoEnabled: identity.enabled() })
-    const [capabilities, account] = await Promise.allSettled([
+    const [capabilities, account, source] = await Promise.allSettled([
       api.getCapabilities(), requestedToken ? api.getMe() : Promise.resolve(null),
+      requestedToken ? api.getCorosStatus() : Promise.resolve(null),
     ])
     if (version !== this.stateVersion) return
     if (api.getToken() !== requestedToken) {
-      this.setData({ hasAccount: Boolean(api.getToken()), userName: '私人空间', wechatBound: null, wechatConfigured: null })
+      this.setData({ hasAccount: Boolean(api.getToken()), userName: '私人空间', wechatBound: null,
+        wechatConfigured: null, sourceStatus: null, sourceLastSuccess: null })
       if (api.getToken()) return this.onShow()
       return
     }
     const cap = capabilities.status === 'fulfilled' ? capabilities.value : null
     const me = account.status === 'fulfilled' ? account.value : null
+    const coros = source.status === 'fulfilled' ? source.value : null
     const bound = me && typeof me.wechat_bound === 'boolean' ? me.wechat_bound : null
     this.accountStateToken = bound !== null ? requestedToken : null
     if (me && typeof me.username === 'string' && Number.isInteger(me.user_id)) {
       api.setUser({ username: me.username, user_id: me.user_id })
     }
     this.setData({ wechatConfigured: cap && typeof cap.wechat_identity_configured === 'boolean' ? cap.wechat_identity_configured : null,
-      wechatBound: bound, userName: me && me.username || '私人空间', hasAccount: Boolean(api.getToken()), autoEnabled: identity.enabled() })
+      wechatBound: bound, userName: me && me.username || '私人空间', hasAccount: Boolean(api.getToken()), autoEnabled: identity.enabled(),
+      sourceStatus: coros && ['active', 'paused', 'unconfigured'].includes(coros.status) ? coros.status : null,
+      sourceLastSuccess: coros && typeof coros.last_success_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(coros.last_success_date) ? coros.last_success_date : null })
+  },
+
+  async toggleCoros() {
+    const token = api.getToken()
+    const version = this.stateVersion
+    if (this.data.sourceBusy || !token || !['active', 'paused'].includes(this.data.sourceStatus)) return
+    const action = this.data.sourceStatus === 'active' ? api.pauseCoros : api.resumeCoros
+    this.setData({ sourceBusy: true })
+    try {
+      const result = await action()
+      if (version !== this.stateVersion) return
+      if (api.getToken() !== token) return this.onShow()
+      if (!result || !['active', 'paused'].includes(result.status)) throw new Error('invalid status')
+      this.setData({ sourceStatus: result.status })
+    } catch (_) {
+      if (version !== this.stateVersion) return
+      if (api.getToken() !== token) return this.onShow()
+      wx.showToast({ title: '同步状态修改失败', icon: 'none' })
+    } finally {
+      this.setData({ sourceBusy: false })
+    }
   },
 
   // ========== 数据导出 ==========

@@ -9,9 +9,9 @@ from jose import JWTError, jwt
 from sqlalchemy import inspect
 
 from auth import SECRET_KEY
-from models import Bill, Category, FitnessRecord, Memory, MemorySuppression, Settings, SyncState
+from models import Bill, Category, FitnessRecord, Memory, MemorySuppression, Settings, SyncState, SourceControl
 
-_TABLES = (Bill, Category, FitnessRecord, Memory, MemorySuppression, Settings, SyncState)
+_TABLES = (Bill, Category, FitnessRecord, Memory, MemorySuppression, Settings, SyncState, SourceControl)
 _PURPOSE = 'baobu-import-preview-v1'
 _LIFETIME = 600
 _MAX_IMPORT_BYTES = 10 * 1024 * 1024

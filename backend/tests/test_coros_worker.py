@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from coros_worker import run_sync
-from models import User
+from models import SourceControl, User
 
 SAMPLE = '''Sport Records (1 records)
 1. Outdoor Run — 2026-10-26
@@ -29,6 +29,7 @@ def config(tmp_path):
 def test_worker_calls_read_only_tool_and_deduplicates(db_session, config):
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='not-a-password'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     response = {'content': [{'type': 'text', 'text': json.dumps(SAMPLE)}], 'isError': False}
     with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(response))) as run:
@@ -52,6 +53,7 @@ def test_worker_rejects_insecure_credentials_and_unknown_user(db_session, config
 def test_worker_failure_never_imports(db_session, config):
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='not-a-password'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=1, stdout='sensitive')):
         with pytest.raises(RuntimeError, match='COROS request failed'):
@@ -65,6 +67,7 @@ def test_checkpoint_catches_up_and_failure_does_not_advance(db_session, config):
     from models import SyncState
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.add(SyncState(user_id=1, source='coros', last_success_date='2026-10-01'))
     db_session.commit()
     body = {'content': [{'type': 'text', 'text': json.dumps(SAMPLE)}], 'isError': False}
@@ -92,10 +95,15 @@ def test_failed_commit_rolls_back_records_and_checkpoint(db_session, config):
     from models import Memory, SyncState
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     body = {'content': [{'type': 'text', 'text': json.dumps(SAMPLE)}], 'isError': False}
     with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(body))):
-        with patch.object(db_session, 'commit', side_effect=RuntimeError('simulated failure')):
+        from integrations.coros_sync import import_sport_records
+        def fail_after_insert(*args, **kwargs):
+            import_sport_records(*args, **kwargs)
+            raise RuntimeError('simulated failure')
+        with patch('integrations.coros_sync.import_sport_records', side_effect=fail_after_insert):
             with pytest.raises(RuntimeError, match='simulated failure'):
                 run_sync(db_session, 1, helper, state, today=date(2026, 10, 27))
     assert db_session.query(Memory).count() == 0
@@ -107,6 +115,7 @@ def test_out_of_range_result_never_advances_checkpoint(db_session, config):
     from integrations.coros_records import CorosResponseError
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     body = {'content': [{'type': 'text', 'text': json.dumps(SAMPLE)}], 'isError': False}
     with patch('coros_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(body))):
@@ -121,6 +130,7 @@ def test_removed_token_is_restored_after_failed_refresh(db_session, config):
     token.write_text('original credential')
     token.chmod(0o600)
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     def failed_refresh(*args, **kwargs):
         token.unlink()
@@ -141,6 +151,7 @@ def test_refreshed_token_is_never_overwritten_on_later_failure(db_session, confi
     token.write_text('old credential')
     token.chmod(0o600)
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     def refreshed_but_query_failed(*args, **kwargs):
         token.write_text('new credential')
@@ -157,6 +168,7 @@ def test_helper_timeout_restores_removed_token(db_session, config):
     token.write_text('old credential')
     token.chmod(0o600)
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     def timeout_after_delete(*args, **kwargs):
         token.unlink()
@@ -179,6 +191,7 @@ def test_explicit_recovery_commits_each_window_and_resumes_after_failure(db_sess
     from models import Memory, SyncState
     helper, state, _ = config
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.add(SyncState(user_id=1, source='coros', last_success_date='2026-09-01'))
     db_session.commit()
     empty = {'content': [{'type': 'text', 'text': json.dumps('Sport Records (0 records)\n')}], 'isError': False}
@@ -214,6 +227,7 @@ def test_command_line_sync_end_to_end_without_private_log_output(db_session, con
     token.write_text('test-secret-never-log')
     token.chmod(0o600)
     db_session.add(User(id=1, username='runner', password_hash='unused'))
+    db_session.add(SourceControl(user_id=1, source='coros', status='active', generation=0))
     db_session.commit()
     now = datetime.now(timezone.utc)
     stamp = int(now.timestamp())

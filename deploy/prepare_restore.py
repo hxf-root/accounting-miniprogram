@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare an offline SQLite restore for review; never modify a live database.
 
-The prepared database revokes stored short-lived sessions and the accompanying
+The prepared database revokes stored short-lived sessions, pauses source controls and the accompanying
 new JWT secret invalidates old JWTs only if every service uses the new secret.
 This tool does not stop services, activate the result, or change identity HMAC keys.
 """
@@ -43,7 +43,7 @@ def prepare(archive: Path, staging: Path, *, max_bytes: int = MAX_DATABASE_BYTES
         with closing(sqlite3.connect(database)) as db:
             if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                 raise ValueError('restored database failed integrity check')
-            objects = {name: kind for name, kind in db.execute("SELECT name, type FROM sqlite_master WHERE name IN ('users', 'access_sessions')")}
+            objects = {name: kind for name, kind in db.execute("SELECT name, type FROM sqlite_master WHERE name IN ('users', 'access_sessions', 'source_controls')")}
             if objects.get('users') != 'table':
                 raise ValueError('restored database is missing the user table')
             if 'access_sessions' in objects:
@@ -53,6 +53,15 @@ def prepare(archive: Path, staging: Path, *, max_bytes: int = MAX_DATABASE_BYTES
                 db.execute('UPDATE access_sessions SET revoked = 1')
                 if db.execute('SELECT COUNT(*) FROM access_sessions WHERE revoked IS NULL OR revoked != 1').fetchone()[0]:
                     raise ValueError('unable to revoke restored sessions')
+                db.commit()
+            if 'source_controls' in objects:
+                if objects['source_controls'] != 'table':
+                    raise ValueError('source controls are not a table')
+                db.execute("UPDATE source_controls SET status = 'paused', generation = generation + 1, "
+                           "lease_token = NULL, lease_expires_at = NULL")
+                if db.execute("SELECT COUNT(*) FROM source_controls WHERE status IS NULL OR status != 'paused' "
+                              "OR generation IS NULL OR lease_token IS NOT NULL OR lease_expires_at IS NOT NULL").fetchone()[0]:
+                    raise ValueError('unable to pause restored sources')
                 db.commit()
             if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                 raise ValueError('prepared database failed integrity check')

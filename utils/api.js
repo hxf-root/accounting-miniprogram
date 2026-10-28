@@ -74,6 +74,9 @@ module.exports = {
   getCapabilities: () => request('GET', '/api/capabilities', undefined, { preserveAuthOn401: true }),
   getMe: () => request('GET', '/api/me'),
   logout: () => request('POST', '/api/auth/logout'),
+  getCorosStatus: () => request('GET', '/api/sources/coros'),
+  pauseCoros: () => request('POST', '/api/sources/coros/pause'),
+  resumeCoros: () => request('POST', '/api/sources/coros/resume'),
 
   // 微信身份：此实验接口由服务器决定是否启用。
   bindWechat: (code, password) => request('POST', '/api/auth/wechat/bind', { code, password }, { preserveAuthOn401: true }),

@@ -17,11 +17,20 @@ const tick = () => new Promise(resolve => setImmediate(resolve))
   api.setToken('fake-token')
   api.getCapabilities = async () => ({ wechat_identity_configured: true })
   api.getMe = async () => ({ user_id: 1, username: 'fictional-user', wechat_bound: false })
+  api.getCorosStatus = async () => ({ status: 'active', last_success_date: '2026-10-27' })
+  api.pauseCoros = async () => ({ status: 'paused' })
+  api.resumeCoros = async () => ({ status: 'active' })
   api.logout = async () => ({ ok: true })
   identity.bind = async () => { values.set('baobaoji_wechat_auto', true) }
   identity.unbind = async () => { values.delete('baobaoji_wechat_auto'); api.clearAuth() }
   page.onLoad(); page.onShow(); await tick()
   assert.equal(page.data.hasAccount, true)
+  assert.equal(page.data.sourceStatus, 'active')
+  assert.equal(page.data.sourceLastSuccess, '2026-10-27')
+  await page.toggleCoros()
+  assert.equal(page.data.sourceStatus, 'paused')
+  await page.toggleCoros()
+  assert.equal(page.data.sourceStatus, 'active')
   page.bindWechat()
   assert.equal(page.data.showWechatBindModal, true)
   page.onBindPasswordInput({ detail: { value: 'discarded-password' } })
@@ -68,9 +77,11 @@ const tick = () => new Promise(resolve => setImmediate(resolve))
   // An old server cannot report its binding state: do not infer it locally.
   api.getCapabilities = async () => { throw new Error('404') }
   api.getMe = async () => { throw new Error('404') }
+  api.getCorosStatus = async () => { throw new Error('404') }
   await page.onShow()
   assert.equal(page.data.wechatConfigured, null)
   assert.equal(page.data.wechatBound, null)
+  assert.equal(page.data.sourceStatus, null)
 
   // A failed revoke only offers local logout; cancellation retains the token.
   api.logout = async () => { const e = new Error('legacy'); e.statusCode = 409; throw e }
@@ -105,5 +116,21 @@ const tick = () => new Promise(resolve => setImmediate(resolve))
   finishLogout({ ok: true })
   await logoutPending
   assert.equal(api.getToken(), 'latest-account')
+
+  // A late source-control reply cannot be shown for a newly switched account.
+  api.getCapabilities = async () => ({ wechat_identity_configured: true })
+  api.getMe = async () => ({ user_id: 4, username: 'account-4', wechat_bound: false })
+  api.getCorosStatus = async () => ({ status: 'active', last_success_date: null })
+  await page.onShow()
+  let finishPause
+  api.pauseCoros = () => new Promise(resolve => { finishPause = resolve })
+  const pendingPause = page.toggleCoros()
+  api.setToken('fifth-account')
+  api.getMe = async () => ({ user_id: 5, username: 'account-5', wechat_bound: false })
+  api.getCorosStatus = async () => ({ status: 'unconfigured', last_success_date: null })
+  finishPause({ status: 'paused' })
+  await pendingPause
+  assert.equal(page.data.userName, 'account-5')
+  assert.equal(page.data.sourceStatus, 'unconfigured')
   console.log('wechat settings: bind, unbind and logout passed')
 })().catch(error => { console.error(error); process.exitCode = 1 })

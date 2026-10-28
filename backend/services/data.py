@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-from models import Bill, FitnessRecord, Settings, Category, Memory, MemorySuppression, SyncState
+from models import Bill, FitnessRecord, Settings, Category, Memory, MemorySuppression, SyncState, SourceControl
 from schemas import ImportData
 
 
@@ -88,6 +88,13 @@ def import_data(db: Session, user_id: int, data: ImportData) -> Dict[str, Any]:
             existing_suppressions.add(key)
 
     if data.memories is not None:
+        # Commit callers hold the SQLite write lock. Fence any provider request
+        # started against the previous memory/checkpoint state.
+        controls = db.query(SourceControl).filter_by(user_id=user_id).all()
+        for control in controls:
+            control.generation += 1
+            control.lease_token = None
+            control.lease_expires_at = None
         db.query(SyncState).filter_by(user_id=user_id).delete()
         db.query(Memory).filter(Memory.user_id == user_id).delete()
         for m in data.memories:

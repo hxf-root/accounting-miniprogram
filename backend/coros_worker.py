@@ -50,8 +50,9 @@ def restore_missing_token(path: Path, original: bytes):
 
 def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit: int = 100, today=None,
              recover: bool = False):
-    from integrations.coros_sync import import_sport_records
-    from models import User, SyncState
+    from integrations.source_control import acquire, release
+    from models import User
+    from sqlalchemy.orm import Session
     if not 1 <= days <= 30 or not 2 <= limit <= 100:
         raise ValueError('days must be 1–30 and limit 2–100')
     if not helper.is_absolute() or not helper.is_file():
@@ -60,8 +61,30 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
         raise ValueError('an absolute private credential directory is required')
     secure_path(state_dir, directory=True)
     secure_path(state_dir / 'token.json', directory=False)
-    if not db.query(User.id).filter_by(id=user_id).first():
-        raise ValueError('target user does not exist')
+    with Session(bind=db.get_bind()) as reader:
+        if not reader.query(User.id).filter_by(id=user_id).first():
+            raise ValueError('target user does not exist')
+    token, generation = acquire(db.get_bind(), user_id)
+    try:
+        return _run_sync(db, user_id, helper, state_dir, token, generation,
+                         days=days, limit=limit, today=today, recover=recover)
+    finally:
+        # A failed release leaves only an expiring lease; never release another
+        # worker's newer lease. Preserve an in-flight error if cleanup also fails.
+        original_failure = sys.exc_info()[0] is not None
+        try:
+            release(db.get_bind(), user_id, token)
+        except Exception:
+            if not original_failure:
+                raise RuntimeError('source lease release failed') from None
+
+
+def _run_sync(db, user_id, helper, state_dir, lease_token, generation, *, days, limit, today, recover):
+    from integrations.coros_sync import import_sport_records
+    from integrations.source_control import assert_lease, renew
+    from sqlalchemy import text
+    from sqlalchemy.orm import Session
+    from models import SyncState
     lock_path = state_dir / 'sync.lock'
     flags = os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0)
     fd = os.open(lock_path, flags, 0o600)
@@ -73,10 +96,12 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
             if token_path.stat().st_size > 65536:
                 raise ValueError('credential token is unexpectedly large')
             today = today or datetime.now(ZoneInfo('Asia/Shanghai')).date()
-            state = db.query(SyncState).filter_by(user_id=user_id, source='coros').first()
+            with Session(bind=db.get_bind()) as reader:
+                state = reader.query(SyncState).filter_by(user_id=user_id, source='coros').first()
+                previous_success = state.last_success_date if state else None
             start = today - timedelta(days=days - 1)
-            if state:
-                last_success = date.fromisoformat(state.last_success_date)
+            if previous_success:
+                last_success = date.fromisoformat(previous_success)
                 if last_success > today:
                     raise RuntimeError('sync checkpoint is in the future')
                 start = min(start, last_success)
@@ -86,6 +111,9 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
                 raise RuntimeError('sync gap exceeds 366 days; manual investigation is required')
             total = {'received': 0, 'inserted': 0, 'suppressed': 0, 'segments': 0}
             while start <= today:
+                # Network calls happen outside the DB write lock. Pausing may
+                # race with a request, but prevents the subsequent commit.
+                renew(db.get_bind(), user_id, lease_token, generation)
                 end = min(start + timedelta(days=29), today)
                 args = {'startDate': start.strftime('%Y%m%d'), 'endDate': end.strftime('%Y%m%d'), 'limit': limit}
                 cmd = [sys.executable, str(helper), '--issuer', 'https://mcpcn.coros.com',
@@ -117,18 +145,17 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
                     response = json.loads(result.stdout)
                 except ValueError as exc:
                     raise RuntimeError('COROS returned invalid JSON') from exc
-                try:
-                    summary = import_sport_records(db, user_id, response, requested_limit=limit, commit=False,
+                with Session(bind=db.get_bind()) as writer:
+                    writer.execute(text('BEGIN IMMEDIATE'))
+                    assert_lease(writer, user_id, lease_token, generation)
+                    summary = import_sport_records(writer, user_id, response, requested_limit=limit, commit=False,
                                                    start_date=start, end_date=end)
-                    if state is None:
-                        state = SyncState(user_id=user_id, source='coros', last_success_date=end.isoformat())
-                        db.add(state)
+                    checkpoint = writer.query(SyncState).filter_by(user_id=user_id, source='coros').first()
+                    if checkpoint is None:
+                        writer.add(SyncState(user_id=user_id, source='coros', last_success_date=end.isoformat()))
                     else:
-                        state.last_success_date = end.isoformat()
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                    raise
+                        checkpoint.last_success_date = end.isoformat()
+                    writer.commit()
                 for key in ("received", "inserted", "suppressed"):
                     total[key] += summary[key]
                 total["segments"] += 1
@@ -141,6 +168,11 @@ def run_sync(db, user_id, helper: Path, state_dir: Path, *, days: int = 7, limit
 def failure_code(exc):
     """Return a non-sensitive code suitable for scheduler logs."""
     from integrations.coros_records import CorosResponseError
+    from integrations.source_control import SourceBusy, SourceUnavailable
+    if isinstance(exc, SourceBusy):
+        return 'sync_already_running'
+    if isinstance(exc, SourceUnavailable):
+        return 'source_paused_or_changed'
     if isinstance(exc, CorosResponseError):
         return 'invalid_or_incomplete_response'
     if isinstance(exc, FileNotFoundError):

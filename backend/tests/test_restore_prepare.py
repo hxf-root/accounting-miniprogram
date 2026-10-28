@@ -51,6 +51,33 @@ def test_older_archive_and_existing_staging_are_safe(tmp_path):
     assert (existing / 'keep').read_text() == 'keep'
 
 
+def test_restore_pauses_and_fences_existing_source_controls(tmp_path):
+    path = tmp_path / 'source.db'
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE users (id INTEGER PRIMARY KEY)')
+        db.execute('CREATE TABLE source_controls (status TEXT, generation INTEGER, lease_token TEXT, lease_expires_at INTEGER)')
+        db.execute("INSERT INTO source_controls VALUES ('active', 4, 'synthetic-lease', 123456789)")
+    archive = tmp_path / 'source.gz'
+    with gzip.open(archive, 'wb') as out:
+        out.write(path.read_bytes())
+    module.prepare(archive, tmp_path / 'stage')
+    with sqlite3.connect(tmp_path / 'stage' / 'restored.db') as db:
+        assert db.execute('SELECT status, generation, lease_token, lease_expires_at FROM source_controls').fetchone() == ('paused', 5, None, None)
+
+
+def test_restore_rejects_incompatible_source_control_schema(tmp_path):
+    path = tmp_path / 'source.db'
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE users (id INTEGER PRIMARY KEY)')
+        db.execute('CREATE TABLE source_controls (status TEXT)')
+    archive = tmp_path / 'invalid-source.gz'
+    with gzip.open(archive, 'wb') as out:
+        out.write(path.read_bytes())
+    with pytest.raises(sqlite3.OperationalError):
+        module.prepare(archive, tmp_path / 'stage')
+    assert not (tmp_path / 'stage').exists()
+
+
 def test_invalid_and_oversized_archives_are_cleaned_up(tmp_path):
     archive = tmp_path / 'invalid.gz'
     with gzip.open(archive, 'wb') as f:
