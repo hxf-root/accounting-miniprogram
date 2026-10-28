@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 load_dotenv()
 
 from database import engine, Base
-from routers import auth, bills, categories, fitness, stats, settings, data, memories
+from routers import auth, bills, categories, fitness, stats, settings, data, memories, wechat_identity
 
 START_TIME = time.time()
 
@@ -118,6 +118,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(auth.router)
+app.include_router(wechat_identity.router)
 app.include_router(bills.router)
 app.include_router(categories.router)
 app.include_router(fitness.router)
