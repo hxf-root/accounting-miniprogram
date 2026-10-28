@@ -66,3 +66,30 @@ def test_login_nonexistent_user(client):
         "password": "pass1234",
     })
     assert resp.status_code == 401
+
+
+def test_revocable_session_access_and_user_isolation(client, db_session):
+    from identity.sessions import issue, revoke
+    first = client.post('/api/auth/register', json={'username': 'session-one', 'password': 'pass1234'}).json()
+    second = client.post('/api/auth/register', json={'username': 'session-two', 'password': 'pass1234'}).json()
+    original = {'Authorization': 'Bearer ' + first['token']}
+    payload = {'source': 'manual', 'occurred_at': '2026-10-28T10:00:00+08:00', 'text': 'private'}
+    assert client.post('/api/memories', headers=original, json=payload).status_code == 201
+    token = issue(db_session, first['user_id'])
+    headers = {'Authorization': 'Bearer ' + token}
+    assert len(client.get('/api/memories', headers=headers).json()) == 1
+    other_token = issue(db_session, second['user_id'])
+    assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + other_token}).json() == []
+    assert revoke(db_session, first['user_id'], token)
+    response = client.get('/api/memories', headers=headers)
+    assert response.status_code == 401
+    assert response.headers['www-authenticate'] == 'Bearer'
+    assert len(client.get('/api/memories', headers=original).json()) == 1
+
+
+def test_expired_short_session_denied(client, db_session):
+    from datetime import datetime, timezone
+    from identity.sessions import issue
+    user = client.post('/api/auth/register', json={'username': 'expired-session', 'password': 'pass1234'}).json()
+    token = issue(db_session, user['user_id'], now=datetime(2020, 1, 1, tzinfo=timezone.utc))
+    assert client.get('/api/memories', headers={'Authorization': 'Bearer ' + token}).status_code == 401

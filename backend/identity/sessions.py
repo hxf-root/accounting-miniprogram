@@ -21,8 +21,12 @@ def _utc_now(now: datetime | None) -> datetime:
     return now.astimezone(timezone.utc)
 
 
+def is_session_token(token: str) -> bool:
+    return isinstance(token, str) and bool(_TOKEN.fullmatch(token))
+
+
 def _digest(token: str) -> str | None:
-    if not isinstance(token, str) or not _TOKEN.fullmatch(token):
+    if not is_session_token(token):
         return None
     return hashlib.sha256(token.encode('ascii')).hexdigest()
 
