@@ -3,6 +3,10 @@
 # 在服务器上执行：git pull → 安装依赖 → 重启服务
 set -euo pipefail
 
+# This legacy path cannot safely migrate or roll back a live database.
+echo '部署脚本已暂停：必须先完成备份、迁移检查和可验证的回退流程。' >&2
+exit 1
+
 cd /home/ubuntu/accounting-miniprogram
 ENV_FILE=/home/ubuntu/accounting-miniprogram/backend/.env
 
